@@ -77,23 +77,18 @@ class FactoryAction (Gtk.Action):
 
         """
         gtype_name = self.MENU_ITEM_NAME_PATTERN % (self.get_name(),)
-        menu_item = self._construct(gtype_name)
-        #menu_item.connect("parent-set", self._tool_item_parent_set)
-        return menu_item
+        return self._construct(gtype_name)
 
     def _construct(self, gtype_name):
         try:
             gtype = GObject.type_from_name(gtype_name)
         except RuntimeError:
-            warn("Cannot construct a new %s: not loaded?" % (gtype_name,),
-                 RuntimeWarning)
+            warn(f"Cannot construct a new {gtype_name}: not loaded?", RuntimeWarning)
             return None
         if not gtype.is_a(Gtk.Widget):
-            warn("%s is not a Gtk.Widget subclass" % (gtype_name,),
-                 RuntimeWarning)
+            warn(f"{gtype_name} is not a Gtk.Widget subclass", RuntimeWarning)
             return None
-        widget = gtype.pytype()
-        return widget
+        return gtype.pytype()
 
     def _tool_item_parent_set(self, widget, old_parent):
         parent = widget.get_parent()

@@ -177,7 +177,7 @@ class ChooserPopup (Gtk.Window):
         self.app = app
         self._size = None  # last recorded size from any show()
         self._motion_handler_id = None
-        self._prefs_size_key = "%s.window_size" % (config_name,)
+        self._prefs_size_key = f"{config_name}.window_size"
         self._resize_info = None   # state during an edge resize
         self._outside_grab_active = False
         self._outside_cursor = Gdk.Cursor(Gdk.CursorType.LEFT_PTR)
@@ -305,10 +305,8 @@ class ChooserPopup (Gtk.Window):
             y = mon_geom.y + mon_geom.height - h
         if x+w > mon_geom.x + mon_geom.width:
             x = mon_geom.x + mon_geom.width - w
-        if x < mon_geom.x:
-            x = mon_geom.x
-        if y < mon_geom.y:
-            y = mon_geom.y
+        x = max(x, mon_geom.x)
+        y = max(y, mon_geom.y)
         event_size = (event.x, event.y, event.width, event.height)
         ex, ey, ew, eh = [int(c) for c in event_size]
         x, y, w, h = [int(c) for c in (x, y, w, h)]
@@ -380,9 +378,7 @@ class ChooserPopup (Gtk.Window):
             self._initial_move_pos = (x, y)
             if self._size:
                 self._do_initial_move()
-        popup_info = None
-        if event:
-            popup_info = (event.get_device(), event.time)
+        popup_info = (event.get_device(), event.time) if event else None
         self._popup_info = popup_info
         self.present()
 

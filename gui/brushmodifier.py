@@ -99,19 +99,17 @@ class BrushModifier (object):
                 if unmod_b.has_large_base_value(setting_name):
                     settings = unmod_b.get_setting(setting_name)
                 modif_b.set_setting(setting_name, settings)
-        else:
-            if not modif_b.has_small_base_value(setting_name):
-                settings = self.MODE_FORCED_OFF_SETTINGS
-                if unmod_b.has_small_base_value(setting_name):
-                    settings = unmod_b.get_setting(setting_name)
-                modif_b.set_setting(setting_name, settings)
+        elif not modif_b.has_small_base_value(setting_name):
+            settings = self.MODE_FORCED_OFF_SETTINGS
+            if unmod_b.has_small_base_value(setting_name):
+                settings = unmod_b.get_setting(setting_name)
+            modif_b.set_setting(setting_name, settings)
 
     def _cancel_other_modes(self, action):
         for other_action in self._toggle_actions:
             if action is other_action:
                 continue
-            setting_name = other_action.setting_name
-            if setting_name:
+            if setting_name := other_action.setting_name:
                 self.set_override_setting(setting_name, False)
             if other_action.get_active():
                 other_action.block_activate()
@@ -121,8 +119,7 @@ class BrushModifier (object):
     def blend_mode_normal_cb(self, action):
         """Callback for the ``BlendModeNormal`` action.
         """
-        normal_wanted = action.get_active()
-        if normal_wanted:
+        if normal_wanted := action.get_active():
             self._cancel_other_modes(action)
             self._push_hist(action)
         else:
@@ -200,9 +197,7 @@ class BrushModifier (object):
         b.load_from_brushinfo(brushinfo)
         self.unmodified_brushinfo = b.clone()
 
-        # Preserve color
-        mix = b.get_base_value('restore_color')
-        if mix:
+        if mix := b.get_base_value('restore_color'):
             c1 = hsv_to_rgb(*color)
             c2 = hsv_to_rgb(*b.get_color_hsv())
             c3 = [(1.0-mix)*v1 + mix*v2 for v1, v2 in zip(c1, c2)]

@@ -464,12 +464,7 @@ class ContextPickingGrabPresenter (PickingGrabPresenter):
         tdw, x, y = TiledDrawWidget.get_tdw_under_device(device)
         if tdw is None:
             return
-        # Determine which document controller owns that tdw
-        doc = None
-        for d in Document.get_instances():
-            if tdw is d.tdw:
-                doc = d
-                break
+        doc = next((d for d in Document.get_instances() if tdw is d.tdw), None)
         if doc is None:
             return
         # Get that controller to do the pick.

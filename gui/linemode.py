@@ -69,7 +69,7 @@ class LineModeSettings (object):
         self._changed_settings = set()
         for line_list in _LINE_MODE_SETTINGS_LIST:
             cname, name, const, min_, default, max_, tooltip = line_list
-            prefs_key = "linemode.%s" % cname
+            prefs_key = f"linemode.{cname}"
             value = float(self.app.preferences.get(prefs_key, default))
             adj = Gtk.Adjustment(value=value, lower=min_, upper=max_,
                                  step_incr=0.01, page_incr=0.1)
@@ -404,10 +404,10 @@ class LineModeBase (gui.mode.ScrollableModeMixin,
                     return
 
         if self.mode == "SequenceMode":
-            if not self.tdw.last_painting_pos:
-                return
-            else:
+            if self.tdw.last_painting_pos:
                 self.sx, self.sy = self.tdw.last_painting_pos
+            else:
+                return
 
     def update_position(self, x, y):
         self.lx, self.ly = self.tdw.display_to_model(x, y)
@@ -455,7 +455,7 @@ class LineModeBase (gui.mode.ScrollableModeMixin,
                 ]
             self.tdw.last_painting_pos = self.ex, self.ey
 
-        if cmd == "StraightMode" or cmd == "SequenceMode":
+        if cmd in ["StraightMode", "SequenceMode"]:
             last_line = ["CurveLine1", last_stroke, sx, sy, x, y]
 
         if cmd == "EllipseMode":
@@ -717,11 +717,9 @@ class LineModeBase (gui.mode.ScrollableModeMixin,
         return adj.get_value()
 
     def line_settings(self):
-        p1 = self.entry_pressure
         p2 = self.midpoint_pressure
         p3 = self.exit_pressure
-        if self.head == 0.0001:
-            p1 = p2
+        p1 = p2 if self.head == 0.0001 else self.entry_pressure
         prange1 = p2 - p1
         prange2 = p3 - p2
         return p1, p2, prange1, prange2, self.head, self.tail
@@ -789,7 +787,7 @@ class SequenceMode (LineModeBase):
     def get_name(cls):
         return _(u"Connected Lines")
 
-    def get_usage(cls):
+    def get_usage(self):
         return _("Draw a sequence of lines; Shift adds curves, "
                  "Ctrl constrains angle")
 
@@ -863,11 +861,7 @@ def rotate_ellipse(x, y, sin, cos):
 ## Vector Math
 def get_angle(x1, y1, x2, y2):
     dot = dot_product(x1, y1, x2, y2)
-    if abs(dot) < 1.0:
-        angle = math.acos(dot) * 180/math.pi
-    else:
-        angle = 0.0
-    return angle
+    return math.acos(dot) * 180/math.pi if abs(dot) < 1.0 else 0.0
 
 
 def constrain_to_angle(x, y, sx, sy):
@@ -885,10 +879,7 @@ def constraint_angle(angle):
     n = angle//15
     n1 = n*15
     rem = angle - n1
-    if rem < 7.5:
-        angle = n*15.0
-    else:
-        angle = (n+1)*15.0
+    angle = n*15.0 if rem < 7.5 else (n+1)*15.0
     return angle
 
 
@@ -904,10 +895,7 @@ def angle_normal(ny, angle):
 def length_and_normal(x1, y1, x2, y2):
     x, y = difference(x1, y1, x2, y2)
     length = vector_length(x, y)
-    if length == 0.0:
-        x, y = 0.0, 0.0
-    else:
-        x, y = x/length, y/length
+    x, y = (0.0, 0.0) if length == 0.0 else (x/length, y/length)
     return length, x, y
 
 
@@ -917,14 +905,12 @@ def normal(x1, y1, x2, y2):
 
 
 def vector_length(x, y):
-    length = math.sqrt(x*x + y*y)
-    return length
+    return math.sqrt(x*x + y*y)
 
 
 def distance(x1, y1, x2, y2):
     x, y = difference(x1, y1, x2, y2)
-    length = vector_length(x, y)
-    return length
+    return vector_length(x, y)
 
 
 def dot_product(x1, y1, x2, y2):

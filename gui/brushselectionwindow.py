@@ -45,9 +45,7 @@ def managedbrush_idfunc(managedbrush):
 
 def managedbrush_namefunc(managedbrush):
     """Returns tooltip of a ManagedBrush."""
-    template = "{name}"
-    if managedbrush.description:
-        template = "{name}\n{description}"
+    template = "{name}\n{description}" if managedbrush.description else "{name}"
     return template.format(
         name = managedbrush.get_display_name(),
         description = managedbrush.description,
@@ -220,15 +218,13 @@ class BrushPopupMenu (Gtk.Menu):
                 "Add to Favorites",
             ))
             item.connect("activate", self._favorite_cb)
-            self.append(item)
         else:
             item = Gtk.MenuItem(C_(
                 "brush group: context menu for a single brush",
                 "Remove from Favorites",
             ))
             item.connect("activate", self._unfavorite_cb)
-            self.append(item)
-
+        self.append(item)
         if bl.group != brushmanager.FAVORITES_BRUSH_GROUP:
             item = Gtk.MenuItem(C_(
                 "brush group: context menu for a single brush",
@@ -358,8 +354,7 @@ class BrushGroupTool (SizedVBoxToolWidget):
         """Updates the brush list to match the group name"""
         if self._brush_list:
             self._brush_list.destroy()
-        viewport = self._scrolls.get_child()
-        if viewport:
+        if viewport := self._scrolls.get_child():
             self._scrolls.remove(viewport)
             viewport.destroy()
         self._brush_list = BrushList(self._app, self._group)
@@ -556,8 +551,7 @@ class BrushGroupsMenu (Gtk.Menu):
         )
         if name is None:
             return
-        name = name.strip()
-        if name:
+        if name := name.strip():
             bm = self.app.brushmanager
             bm.create_group(name)
 

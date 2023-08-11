@@ -343,8 +343,8 @@ class FrameEditMode (gui.mode.ScrollableModeMixin,
             button0, zone0 = self._click_info
             if event.button == button0:
                 if self._zone == zone0:
-                    model = tdw.doc
                     if zone0 == _EditZone.REMOVE_FRAME:
+                        model = tdw.doc
                         model.set_frame_enabled(False, user_initiated=True)
                     elif zone0 == _EditZone.CREATE_FRAME:
                         self._place_new_frame(tdw, pos=(event.x, event.y))
@@ -378,8 +378,7 @@ class FrameEditMode (gui.mode.ScrollableModeMixin,
             mx, my = tdw.display_to_model(event.x, event.y)
             fdx = int(round(mx - mx0))
             fdy = int(round(my - my0))
-            drag_effect = self.DRAG_EFFECTS.get(self._zone)
-            if drag_effect:
+            if drag_effect := self.DRAG_EFFECTS.get(self._zone):
                 mdx, mdy, mdw, mdh = drag_effect
                 x, y, w, h = self._orig_frame
                 x0, y0 = x, y
@@ -512,7 +511,7 @@ class FrameEditOptionsWidget (Gtk.Alignment):
         color_button = Gtk.ColorButton()
         color_rgba = self.app.preferences.get("frame.color_rgba")
         color_rgba = [min(max(c, 0), 1) for c in color_rgba]
-        color_gdk = uicolor.to_gdk_color(RGBColor(*color_rgba[0:3]))
+        color_gdk = uicolor.to_gdk_color(RGBColor(*color_rgba[:3]))
         color_alpha = int(65535 * color_rgba[3])
         color_button.set_color(color_gdk)
         color_button.set_use_alpha(True)
@@ -657,9 +656,7 @@ class FrameEditOptionsWidget (Gtk.Alignment):
         combobox = self._unit_combobox
         model = combobox.get_model()
         active = combobox.get_active()
-        if active < 0:
-            return None
-        return model[active][0]
+        return None if active < 0 else model[active][0]
 
     def crop_frame_cb(self, button, command):
         model = self.app.doc.model
@@ -748,8 +745,7 @@ class FrameOverlay (Overlay):
         tdw = self.doc.tdw
         x, y, w, h = tuple(self.doc.model.get_frame())
         points_model = [(x, y), (x+w, y), (x+w, y+h), (x, y+h)]
-        points_disp = [tdw.model_to_display(*p) for p in points_model]
-        return points_disp
+        return [tdw.model_to_display(*p) for p in points_model]
 
     def paint(self, cr):
         """Paints the frame, and the edit boxes if appropriate"""
@@ -788,16 +784,14 @@ class FrameOverlay (Overlay):
         cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
         cr.fill_preserve()
 
-        # If the doc controller is not in a frame-editing mode, no edit
-        # controls will be drawn. The frame mask drawn above normally
-        # has some alpha, and may be unclear as a result. To make it
-        # clearer, double-strike the edges.
-
-        editmode = None
-        for m in reversed(list(self.doc.modes)):
-            if isinstance(m, FrameEditMode):
-                editmode = m
-                break
+        editmode = next(
+            (
+                m
+                for m in reversed(list(self.doc.modes))
+                if isinstance(m, FrameEditMode)
+            ),
+            None,
+        )
         if not editmode:
             cr.set_line_width(self.OUTLINE_WIDTH)
             cr.stroke()
@@ -965,8 +959,7 @@ class UnitAdjustment(Gtk.Adjustment):
 
     def convert(self, value, unit_from, unit_to):
         px = self.convert_to_px(value, unit_from)
-        uvalue = self.convert_to_unit(px, unit_to)
-        return uvalue
+        return self.convert_to_unit(px, unit_to)
 
     def convert_to_px(self, value, unit):
         if unit == _('px'):

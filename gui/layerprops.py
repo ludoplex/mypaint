@@ -229,14 +229,14 @@ class LayerPropertiesUI (gui.mvp.BuiltUIPresenter, object):
 
     def _m2v_opacity(self):
         adj = self.view.layer_opacity_adjustment
-        scale = self.view.layer_opacity_scale
         layer = self._layer
 
-        opacity_is_adjustable = not (
-            layer is None
-            or layer is self._docmodel.layer_stack
-            or layer.mode == PASS_THROUGH_MODE
+        opacity_is_adjustable = (
+            layer is not None
+            and layer is not self._docmodel.layer_stack
+            and layer.mode != PASS_THROUGH_MODE
         )
+        scale = self.view.layer_opacity_scale
         scale.set_sensitive(opacity_is_adjustable)
         if not opacity_is_adjustable:
             return

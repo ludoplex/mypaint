@@ -136,15 +136,16 @@ class AccelMapEditor (Gtk.Grid):
         assert self.ui_manager is not None
         self._action_labels.clear()
         self._store.clear()
-        accel_labels = {}
-        for path, key, mods, changed in self._get_accel_map_entries():
-            accel_labels[path] = Gtk.accelerator_get_label(key, mods)
+        accel_labels = {
+            path: Gtk.accelerator_get_label(key, mods)
+            for path, key, mods, changed in self._get_accel_map_entries()
+        }
         for group in self.ui_manager.get_action_groups():
             group_name = group.get_name()
             for action in group.list_actions():
 
                 action_name = _udecode(action.get_name())
-                path = u"<Actions>/%s/%s" % (group_name, action_name)
+                path = f"<Actions>/{group_name}/{action_name}"
                 if isinstance(action, Gtk.RecentAction):
                     logger.debug("Skipping %r: GtkRecentAction", path)
                     continue
@@ -190,7 +191,7 @@ class AccelMapEditor (Gtk.Grid):
                 accel_label = accel_labels.get(path, "")
                 assert accel_label is not None
                 self._accel_labels[path] = accel_label
-                row = [None for t in self._COLUMN_TYPES]
+                row = [None for _ in self._COLUMN_TYPES]
 
                 self._populate_row(row, path, action_label,
                                    action_desc, accel_label)
@@ -238,9 +239,10 @@ class AccelMapEditor (Gtk.Grid):
 
     def _update_from_accel_map(self):
         """Updates the list from the global AccelMap, logging changes"""
-        accel_labels = {}
-        for path, key, mods, changed in self._get_accel_map_entries():
-            accel_labels[path] = Gtk.accelerator_get_label(key, mods)
+        accel_labels = {
+            path: Gtk.accelerator_get_label(key, mods)
+            for path, key, mods, changed in self._get_accel_map_entries()
+        }
         for row in self._store:
             path = row[self._PATH_COLUMN]
             new_label = accel_labels.get(path, "")
@@ -259,9 +261,10 @@ class AccelMapEditor (Gtk.Grid):
         accel_map = Gtk.AccelMap.get()
         entries = []
         accel_map.foreach_unfiltered(0, lambda *e: entries.append(e))
-        entries = [(accel_path, key, mods, changed)
-                   for data, accel_path, key, mods, changed in entries]
-        return entries
+        return [
+            (accel_path, key, mods, changed)
+            for data, accel_path, key, mods, changed in entries
+        ]
 
     ## Search
 
@@ -273,8 +276,7 @@ class AccelMapEditor (Gtk.Grid):
             key in search_text
             or key.lower() in search_text.lower()
         )
-        result = not matches   # yeah, inverted sense
-        return result
+        return not matches
 
     ## Editing
 
@@ -457,11 +459,11 @@ class AccelMapEditor (Gtk.Grid):
                 action=lib.xml.escape(clash_action_label),
             )
             self._edit_dialog_set_hint(dialog, markup)
-            label = u"%s (replace)" % (accel_label,)
+            label = f"{accel_label} (replace)"
             dialog.accel_label_widget.set_text(str(label))
         else:
             self._edit_dialog_set_standard_hint(dialog)
-            label = u"%s (changed)" % (accel_label,)
+            label = f"{accel_label} (changed)"
             dialog.accel_label_widget.set_text(label)
         dialog.result_mods = mods
         dialog.result_keyval = keyval

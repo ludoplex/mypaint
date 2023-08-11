@@ -115,10 +115,7 @@ def win32_unicode_argv():
         argv = get_argv(cmd, byref(argc))
         if argc.value > 0:
             # Remove Python executable if present
-            if argc.value - len(sys.argv) == 1:
-                start = 1
-            else:
-                start = 0
+            start = 1 if argc.value - len(sys.argv) == 1 else 0
             return [argv[i] for i in xrange(start, argc.value)]
     except Exception:
         logger.exception(
@@ -425,11 +422,9 @@ if __name__ == '__main__':
     log_format = "%(levelname)s: %(name)s: %(message)s"
     console_handler = logging.StreamHandler(stream=sys.stderr)
     no_ansi_platforms = ["win32"]
-    can_use_ansi_formatting = (
-        (sys.platform not in no_ansi_platforms)
-        and sys.stderr.isatty()
-    )
-    if can_use_ansi_formatting:
+    if can_use_ansi_formatting := (
+        (sys.platform not in no_ansi_platforms) and sys.stderr.isatty()
+    ):
         log_format = (
             "%(levelCol)s%(levelname)s: "
             "%(bold)s%(name)s%(reset)s%(levelCol)s: "

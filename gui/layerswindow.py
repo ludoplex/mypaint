@@ -159,10 +159,7 @@ class LayersTool (SizedVBoxToolWidget):
         grid = Gtk.Grid()
         grid.set_row_spacing(widgets.SPACING_TIGHT)
         grid.set_column_spacing(widgets.SPACING)
-        row = -1
-
-        # Visibility set management
-        row += 1
+        row = -1 + 1
         layer_view_ui = gui.layervis.LayerViewUI(docmodel)
         grid.attach(layer_view_ui.widget, 0, row, 6, 1)
         self._layer_view_ui = layer_view_ui
@@ -174,9 +171,9 @@ class LayersTool (SizedVBoxToolWidget):
         modes = list(STACK_MODES + STANDARD_MODES)
         modes.remove(DEFAULT_MODE)
         modes.insert(0, DEFAULT_MODE)
+        sensitive = True
         for mode in modes:
             label, desc = MODE_STRINGS.get(mode)
-            sensitive = True
             scale = 1/1.2   # PANGO_SCALE_SMALL
             store.append([mode, label, sensitive, scale])
         combo = Gtk.ComboBox()
@@ -329,25 +326,19 @@ class LayersTool (SizedVBoxToolWidget):
         """Updates the opacity widgets from the model"""
         assert self._processing_model_updates
 
-        # The opacity scale is only sensitive
-        # when the opacity can be adjusted.
-        sbut = self._opacity_scale_button
         rootstack = self.app.doc.model.layer_stack
         layer = rootstack.current
-        opacity_is_adjustable = not (
-            layer is None
-            or layer is rootstack
-            or layer.mode == PASS_THROUGH_MODE
+        opacity_is_adjustable = (
+            layer is not None
+            and layer is not rootstack
+            and layer.mode != PASS_THROUGH_MODE
         )
+        sbut = self._opacity_scale_button
         sbut.set_sensitive(opacity_is_adjustable)
 
         # Update labels, scales etc.
         # to show an effective opacity value.
-        if opacity_is_adjustable:
-            opacity = layer.opacity
-        else:
-            opacity = 1.0
-
+        opacity = layer.opacity if opacity_is_adjustable else 1.0
         percentage = opacity * 100
         adj = self._opacity_adj
         adj.set_value(percentage)
@@ -371,10 +362,9 @@ class LayersTool (SizedVBoxToolWidget):
         for old_mergeid in self._layer_specific_ui_mergeids:
             ui_manager.remove_ui(old_mergeid)
         self._layer_specific_ui_mergeids = []
-        new_ui_matches = []
-        for lclass, lui in LAYER_CLASS_UI:
-            if isinstance(layer, lclass):
-                new_ui_matches.append(lui)
+        new_ui_matches = [
+            lui for lclass, lui in LAYER_CLASS_UI if isinstance(layer, lclass)
+        ]
         for new_ui in new_ui_matches:
             new_mergeid = ui_manager.add_ui_from_string(new_ui)
             self._layer_specific_ui_mergeids.append(new_mergeid)

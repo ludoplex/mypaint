@@ -176,13 +176,13 @@ class BrushChooserPopup (windowing.ChooserPopup):
         """
         windowing.ChooserPopup.__init__(
             self,
-            app = app,
-            actions = [
+            app=app,
+            actions=[
                 'ColorChooserPopup',
                 'ColorChooserPopupFastSubset',
                 'BrushChooserPopup',
             ],
-            config_name = "brush_chooser.%s" % (prefs_id,),
+            config_name=f"brush_chooser.{prefs_id}",
         )
         self._chosen_brush = None
         self._chooser = QuickBrushChooser(app, prefs_id=prefs_id)
@@ -317,13 +317,13 @@ class ColorChooserPopup (windowing.ChooserPopup):
         """
         windowing.ChooserPopup.__init__(
             self,
-            app = app,
-            actions = [
+            app=app,
+            actions=[
                 'ColorChooserPopup',
                 'ColorChooserPopupFastSubset',
                 'BrushChooserPopup',
             ],
-            config_name = u"color_chooser.%s" % (prefs_id,),
+            config_name=f"color_chooser.{prefs_id}",
         )
         self._chooser = QuickColorChooser(
             app,

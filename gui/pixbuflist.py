@@ -44,17 +44,10 @@ class PixbufList(Gtk.DrawingArea):
     # GType naming, for GtkBuilder
     __gtype_name__ = 'PixbufList'
 
-    def __init__(self, itemlist=None,
-                 item_w=ITEM_SIZE_DEFAULT,
-                 item_h=ITEM_SIZE_DEFAULT,
-                 namefunc=None, pixbuffunc=lambda x: x,
-                 idfunc=lambda x: str(id(x))):
+    def __init__(self, itemlist=None, item_w=ITEM_SIZE_DEFAULT, item_h=ITEM_SIZE_DEFAULT, namefunc=None, pixbuffunc=lambda x: x, idfunc=lambda x: id(x)):
         super(PixbufList, self).__init__()
 
-        if itemlist is not None:
-            self.itemlist = itemlist
-        else:
-            self.itemlist = []
+        self.itemlist = itemlist if itemlist is not None else []
         self.pixbuffunc = pixbuffunc
         self.namefunc = namefunc
         self.idfunc = idfunc
@@ -169,12 +162,7 @@ class PixbufList(Gtk.DrawingArea):
             return False
         action = None
         source_widget = Gtk.drag_get_source_widget(context)
-        if self is source_widget:
-            # Only moves are possible
-            action = Gdk.DragAction.MOVE
-        else:
-            # Dragging from another widget, is always a copy
-            action = Gdk.DragAction.COPY
+        action = Gdk.DragAction.MOVE if self is source_widget else Gdk.DragAction.COPY
         Gdk.drag_status(context, action, time)
         if not self.drag_highlighted:
             self.drag_highlighted = True
@@ -284,12 +272,9 @@ class PixbufList(Gtk.DrawingArea):
         i = x // self.total_w
         if i >= self.tiles_w:
             i = self.tiles_w - 1
-        if i < 0:
-            i = 0
+        i = max(i, 0)
         i = i + self.tiles_w * (y // self.total_h)
-        if i < 0:
-            i = 0
-        return i
+        return max(i, 0)
 
     def point_is_inside(self, x, y):
         alloc = self.get_allocation()

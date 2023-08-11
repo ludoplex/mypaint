@@ -42,8 +42,7 @@ def _init_gtk_workarounds():
         for name in ["new_from_file_at_scale", "new_from_file_at_size",
                      "new_from_file"]:
             cls = GdkPixbuf.Pixbuf
-            func = getattr(cls, name + "_utf8", None)
-            if func:
+            if func := getattr(cls, f"{name}_utf8", None):
                 logger.debug(
                     "Monkeypatching GdkPixbuf.Pixbuf.%s with %r",
                     name, func,
@@ -171,7 +170,7 @@ def main(datapath, iconspath, oldstyle_confpath=None, version=MYPAINT_VERSION):
 
     if options.version:
         # Output (rather than log) the version
-        print("MyPaint version %s" % (version, ))
+        print(f"MyPaint version {version}")
         sys.exit(0)
 
     def run():

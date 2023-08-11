@@ -100,8 +100,7 @@ class InputTestWindow (windowing.SubWindow):
         logger.info('Event statistics disabled.')
 
     def second_timer_cb(self):
-        s = str(self.motion_event_counter)
-        s += ' events, timestamp spacing: '
+        s = f'{str(self.motion_event_counter)} events, timestamp spacing: '
         if self.motion_dtime_sample:
             for dtime in self.motion_dtime_sample:
                 s += '%d, ' % dtime
@@ -137,13 +136,12 @@ class InputTestWindow (windowing.SubWindow):
                 msg += ' button=%d' % button
 
         if hasattr(event, 'keyval'):
-            msg += ' keyval=%s' % event.keyval
+            msg += f' keyval={event.keyval}'
 
         if hasattr(event, 'hardware_keycode'):
-            msg += ' hw_keycode=%s' % event.hardware_keycode
+            msg += f' hw_keycode={event.hardware_keycode}'
 
-        device = getattr(event, 'device', None)
-        if device:
+        if device := getattr(event, 'device', None):
             device = event.get_source_device().get_name()
             if self.last_device != device:
                 self.last_device = device
@@ -159,10 +157,7 @@ class InputTestWindow (windowing.SubWindow):
             self.barrel_rotation_label.set_text('%+4.4f' % (barrel_rotation))
 
         if widget is not self.app.doc.tdw:
-            if widget is self.app.drawWindow:
-                msg += ' [drawWindow]'
-            else:
-                msg += ' [%r]' % widget
+            msg += ' [drawWindow]' if widget is self.app.drawWindow else ' [%r]' % widget
         return msg
 
     def report(self, msg):
@@ -191,8 +186,7 @@ class InputTestWindow (windowing.SubWindow):
                 self.report(msg)  # report first few motion event immediately
             self.motion_reports.append(msg)
         else:
-            unreported = self.motion_reports[motion_reports_limit:]
-            if unreported:
+            if unreported := self.motion_reports[motion_reports_limit:]:
                 last_report = unreported.pop()
                 if unreported:
                     self.report('...      MOTION_NOTIFY %d events suppressed'

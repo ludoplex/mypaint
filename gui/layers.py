@@ -190,9 +190,8 @@ class RootStackTreeModelWrapper (GObject.GObject, Gtk.TreeModel):
         """Gets an iterator's path: None if invalid"""
         if not self.iter_is_valid(it):
             return None
-        else:
-            path = self._iter_id2path.get(it.user_data)
-            return tuple(path)
+        path = self._iter_id2path.get(it.user_data)
+        return tuple(path)
 
     def _set_iter_path(self, it, path):
         """Sets an iterator's path, invalidating it if path=None"""
@@ -217,10 +216,9 @@ class RootStackTreeModelWrapper (GObject.GObject, Gtk.TreeModel):
         """
         if not path:
             return (False, None)
-        else:
-            it = Gtk.TreeIter()
-            self._set_iter_path(it, tuple(path))
-            return (True, it)
+        it = Gtk.TreeIter()
+        self._set_iter_path(it, tuple(path))
+        return (True, it)
 
     def _iter_bump(self, it, delta):
         """Move an iter at its current level"""
@@ -271,16 +269,11 @@ class RootStackTreeModelWrapper (GObject.GObject, Gtk.TreeModel):
     def do_get_path(self, it):
         """New GtkTreePath for a treeiter"""
         path = self._get_iter_path(it)
-        if path is None:
-            return None
-        else:
-            return Gtk.TreePath(path)
+        return None if path is None else Gtk.TreePath(path)
 
     def do_get_value(self, it, column):
         """Value at a particular row-iterator and column index"""
-        if column != 0:
-            return None
-        return self.get_layer(it=it)
+        return None if column != 0 else self.get_layer(it=it)
 
     def do_iter_next(self, it):
         """Move an iterator to the node after it, returning success"""
@@ -302,10 +295,7 @@ class RootStackTreeModelWrapper (GObject.GObject, Gtk.TreeModel):
     def do_iter_n_children(self, it):
         """Count of the children of a given iterator"""
         layer = self.get_layer(it=it)
-        if not isinstance(layer, lib.layer.LayerStack):
-            return 0
-        else:
-            return len(layer)
+        return 0 if not isinstance(layer, lib.layer.LayerStack) else len(layer)
 
     def do_iter_nth_child(self, it, n):
         """Fetch a specific child iterator of a parent iter"""
@@ -690,7 +680,7 @@ class RootStackTreeView (Gtk.TreeView):
             n = len(root)
             return (n,)
         dest_path = tuple(dest_treepath)
-        assert len(dest_path) > 0
+        assert dest_path
         dest_layer = root.deepget(dest_path)
         gtvdp = Gtk.TreeViewDropPosition
         if isinstance(dest_layer, lib.layer.LayerStack):
@@ -704,17 +694,15 @@ class RootStackTreeView (Gtk.TreeView):
         if drop_pos == gtvdp.BEFORE:
             return dest_path
         elif drop_pos == gtvdp.AFTER:
-            is_expanded_group = (
-                isinstance(dest_layer, lib.layer.LayerStack) and
-                self.row_expanded(dest_treepath)
-            )
-            if is_expanded_group:
+            if is_expanded_group := (
+                isinstance(dest_layer, lib.layer.LayerStack)
+                and self.row_expanded(dest_treepath)
+            ):
                 # This highlights like an insert before its first item
                 return tuple(list(dest_path) + [0])
-            else:
-                dest_path = list(dest_path)
-                dest_path[-1] += 1
-                return tuple(dest_path)
+            dest_path = list(dest_path)
+            dest_path[-1] += 1
+            return tuple(dest_path)
         else:
             raise NotImplemented("Unhandled position %r", drop_pos)
 
@@ -788,8 +776,7 @@ class RootStackTreeView (Gtk.TreeView):
         old_layerpath = None
         model, selected_paths = sel.get_selected_rows()
         if len(selected_paths) > 0:
-            old_treepath = selected_paths[0]
-            if old_treepath:
+            if old_treepath := selected_paths[0]:
                 old_layerpath = tuple(old_treepath.get_indices())
         if layerpath == old_layerpath:
             return
@@ -805,8 +792,7 @@ class RootStackTreeView (Gtk.TreeView):
         sel = self.get_selection()
         tree_model, sel_row_paths = sel.get_selected_rows()
         if len(sel_row_paths) > 0:
-            sel_row_path = sel_row_paths[0]
-            if sel_row_path:
+            if sel_row_path := sel_row_paths[0]:
                 self.scroll_to_cell(sel_row_path)
 
     ## Observable events (hook stuff here!)
@@ -840,8 +826,6 @@ class RootStackTreeView (Gtk.TreeView):
         visible = True
         sensitive = not self._docmodel.layer_view_manager.current_view_locked
         if layer:
-            # Layer visibility is based on the layer's natural hidden/
-            # visible flag, but the layer stack can override that.
             if rootstack.current_layer_solo:
                 visible = layer is rootstack.current
                 sensitive = False
@@ -849,9 +833,7 @@ class RootStackTreeView (Gtk.TreeView):
                 visible = layer.visible
                 sensitive = sensitive and layer.branch_visible
 
-        icon_name = "mypaint-object-{}-symbolic".format(
-            "visible" if visible else "hidden",
-        )
+        icon_name = f'mypaint-object-{"visible" if visible else "hidden"}-symbolic'
         cell.set_property("icon-name", icon_name)
         cell.set_property("sensitive", sensitive)
 
@@ -884,8 +866,7 @@ class RootStackTreeView (Gtk.TreeView):
             cache = {}
             self.__icon_cache = cache
         icon_name = layer.get_icon_name()
-        icon_size = 16
-        icon_size += 2   # allow fopr the outline
+        icon_size = 16 + 2
         icon = cache.get(icon_name, None)
         if not icon:
             icon = gui.drawutils.load_symbolic_icon(
@@ -932,7 +913,7 @@ class RootStackTreeView (Gtk.TreeView):
         if layer is not None:
             desc_parts = []
             if isinstance(layer, lib.layer.LayerStack):
-                name_markup = "<i>{}</i>".format(name_markup)
+                name_markup = f"<i>{name_markup}</i>"
 
             # Mode (if it's interesting)
             if layer.mode in lib.modes.MODE_STRINGS:
@@ -997,11 +978,10 @@ class RootStackTreeView (Gtk.TreeView):
                 '</span>'
             )
 
-        markup = markup_template.format(
+        return markup_template.format(
             layer_name=name_markup,
             layer_description=escape(description),
         )
-        return markup
 
     def _layer_name_text_datafunc(self, column, cell, model, it, data):
         """Show the layer name, with italics for layer groups"""

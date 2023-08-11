@@ -51,16 +51,16 @@ def XYZ_to_spectral(
         """
         Objective function.
         """
-        
+
         return np.sum(np.diff(a)**2)
 
     def function_constraint(a):
         """
         Function defining the constraint for XYZ=XYZ.
         """
-        
+
         spd[:] = np.exp(a)
-        
+
         return (XYZ -
                 (colour.colorimetry.spectral_to_XYZ_integration(
                     spd, cmfs=cmfs, illuminant=illuminant)))
@@ -69,9 +69,7 @@ def XYZ_to_spectral(
         """
         Function defining constraint on emission/reflectance
         """
-        if max_refl <= 0.0:
-            return 0.0
-        return max_refl - np.exp(np.max(a)) * 100.
+        return 0.0 if max_refl <= 0.0 else max_refl - np.exp(np.max(a)) * 100.
 
     wavelengths = spd.wavelengths
     bins = wavelengths.size

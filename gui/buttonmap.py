@@ -52,9 +52,7 @@ def button_press_displayname(button, mods, shorten = False):
     mods = Gdk.ModifierType(mods)
     modif_label = Gtk.accelerator_get_label(0, mods)
     modif_label = unicode(modif_label)
-    separator = ""
-    if modif_label:
-        separator = u"+"
+    separator = u"+" if modif_label else ""
     mouse_button_label = _("Button")
     if shorten:
         # TRANSLATORS: abbreviated "Button <number>" for forms like "Alt+Btn1"
@@ -81,10 +79,7 @@ def button_press_parse(name):
     name = str(name)
     try:
         mods_s, button_s = name.split("Button", 1)
-        if button_s == '':
-            button = 0
-        else:
-            button = int(button_s)
+        button = 0 if button_s == '' else int(button_s)
     except ValueError:
         button = 0
         mods = Gdk.ModifierType(0)
@@ -116,10 +111,7 @@ def get_handler_object(app, action_name):
         return ("popup_state", popup_state)
     else:
         action = app.find_action(action_name)
-        if action is not None:
-            return ("gtk_action", action)
-        else:
-            return ("no_handler", None)
+        return ("gtk_action", action) if action is not None else ("no_handler", None)
 
 
 class ButtonMapping (object):
@@ -161,9 +153,7 @@ class ButtonMapping (object):
         """
         try:
             modmap = self._mapping[modifiers]
-            if len(modmap) > 1:
-                return None
-            return self._mapping[modifiers][button]
+            return None if len(modmap) > 1 else self._mapping[modifiers][button]
         except KeyError:
             return None
 
@@ -234,7 +224,7 @@ class ButtonMappingEditor (Gtk.EventBox):
         self.add(self.vbox)
 
         # Display strings for action names
-        self.action_labels = dict()
+        self.action_labels = {}
 
         # Model: combo cellrenderer's liststore
         ls = Gtk.ListStore(GObject.TYPE_STRING, GObject.TYPE_STRING)
@@ -534,8 +524,7 @@ class ButtonMappingEditor (Gtk.EventBox):
         dialog.show()
 
     def _bp_edit_dialog_set_error(self, dialog, markup):
-        dialog.hint_label.set_markup(
-            "<span foreground='red'>%s</span>" % markup)
+        dialog.hint_label.set_markup(f"<span foreground='red'>{markup}</span>")
 
     def _bp_edit_dialog_set_standard_hint(self, dialog):
         markup = _("Hold down modifier keys, and press a button "

@@ -63,9 +63,9 @@ class BuildTranslations (Command):
         if needs_update:
             cmd = ("msgfmt", src, "-o", targ)
             if self.dry_run:
-                self.announce("would run %s" % (" ".join(cmd),), level=2)
+                self.announce(f'would run {" ".join(cmd)}', level=2)
                 return []
-            self.announce("running %s" % (" ".join(cmd),), level=2)
+            self.announce(f'running {" ".join(cmd)}', level=2)
 
             self.mkpath(targ_dir)
             subprocess.check_call(cmd)
@@ -111,18 +111,17 @@ class BuildConfig (Command):
         for f in files:
             try:
                 shutil.copyfile(f, files[f])
-                fd = open(files[f], 'r+')
-                contents = fd.read()
-                # Make the necessary replacements.
-                for r in replacements:
-                    contents = contents.replace(r, replacements[r])
-                fd.truncate(0)
-                fd.seek(0)
-                fd.write(contents)
-                fd.flush()
-                fd.close()
+                with open(files[f], 'r+') as fd:
+                    contents = fd.read()
+                    # Make the necessary replacements.
+                    for r in replacements:
+                        contents = contents.replace(r, replacements[r])
+                    fd.truncate(0)
+                    fd.seek(0)
+                    fd.write(contents)
+                    fd.flush()
             except IOError:
-                sys.stderr.write('The script {} failed to update. Check your permissions.'.format(f))
+                sys.stderr.write(f'The script {f} failed to update. Check your permissions.')
                 sys.exit(os.EX_CANTCREAT)
 
 
@@ -302,7 +301,7 @@ class InstallScripts (install_scripts):
         if strip_ext and targ_basename.endswith(".py"):
             targ_basename = targ_basename[:-3]
         targ = os.path.join(self.install_dir, targ_basename)
-        self.announce("installing %s as %s" % (src, targ_basename), level=2)
+        self.announce(f"installing {src} as {targ_basename}", level=2)
         if self.dry_run:
             return []
         with open(src, "rU") as in_fp:
@@ -316,7 +315,7 @@ class InstallScripts (install_scripts):
                 else:
                     print(header, file=out_fp)
                     print(line, file=out_fp)
-                for line in in_fp.readlines():
+                for line in in_fp:
                     line = line.rstrip()
                     print(line, file=out_fp)
         if set_mode:
@@ -505,8 +504,7 @@ def pkgconfig(packages, **kwopts):
         for conf_arg in cmd_output.split():
             flag = conf_arg[:2]
             flag_value = conf_arg[2:]
-            flag_key = flag_map.get(flag)
-            if flag_key:
+            if flag_key := flag_map.get(flag):
                 kw = flag_key
                 val = flag_value
             else:
@@ -533,20 +531,16 @@ def get_ext_modules():
     ]
     extra_link_args = []
 
-    if sys.platform != "darwin":
+    if sys.platform == "darwin":
+        pass
+    elif sys.platform == "linux2":
         extra_link_args.append("-fopenmp")
         extra_compile_args.append("-fopenmp")
 
-    if sys.platform == "darwin":
-        pass
-    elif sys.platform == "win32":
-        pass
-    elif sys.platform == "msys":
-        pass
-    elif sys.platform == "linux2":
-        # Look up libraries dependencies relative to the library.
-        extra_link_args.append('-Wl,-z,origin')
-        extra_link_args.append('-Wl,-rpath,$ORIGIN')
+        extra_link_args.extend(('-Wl,-z,origin', '-Wl,-rpath,$ORIGIN'))
+    else:
+        extra_link_args.append("-fopenmp")
+        extra_compile_args.append("-fopenmp")
 
     mypaintlib_opts = pkgconfig(
         packages=[
@@ -565,14 +559,13 @@ def get_ext_modules():
         extra_compile_args=extra_compile_args,
     )
 
-    mypaintlib_swig_opts = ['-Wall', '-noproxydel', '-c++']
-    mypaintlib_swig_opts.extend([
-        "-I" + d
-        for d in mypaintlib_opts["include_dirs"]
-    ])
-    # FIXME: building against the new shared lib, omit old test code
-    mypaintlib_swig_opts.extend(['-DNO_TESTS'])
-
+    mypaintlib_swig_opts = [
+        '-Wall',
+        '-noproxydel',
+        '-c++',
+        *[f"-I{d}" for d in mypaintlib_opts["include_dirs"]],
+        '-DNO_TESTS',
+    ]
     mypaintlib = Extension(
         'lib._mypaintlib',
         [

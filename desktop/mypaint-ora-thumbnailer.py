@@ -72,5 +72,5 @@ if __name__ == '__main__':
     try:
         progname, infile, outfile, size = sys.argv
     except ValueError:
-        sys.exit('Usage: %s <Input> <Output> <Size>' % sys.argv[0])
+        sys.exit(f'Usage: {sys.argv[0]} <Input> <Output> <Size>')
     ora_thumbnail(infile, outfile, int(size))

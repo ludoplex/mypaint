@@ -258,13 +258,8 @@ class InteractionMode (object):
         If there's an associated action, this method returns the icon
         associated with the action.
         """
-        icon_name = None
-        action = self.get_action()
-        if action:
-            icon_name = action.get_icon_name()
-        if not icon_name:
-            return 'missing-icon'
-        return icon_name
+        icon_name = action.get_icon_name() if (action := self.get_action()) else None
+        return 'missing-icon' if not icon_name else icon_name
 
     ## Mode stacking interface
 
@@ -396,11 +391,7 @@ class InteractionMode (object):
 
         """
         doc = self.doc
-        if doc is None:
-            modifiers = Gdk.ModifierType(0)
-        else:
-            modifiers = doc.get_current_modifiers()
-        return modifiers
+        return Gdk.ModifierType(0) if doc is None else doc.get_current_modifiers()
 
     def current_position(self):
         """Returns the current client pointer position on the main TDW.
@@ -633,8 +624,7 @@ class PaintingModeOptionsWidgetBase (Gtk.Grid):
     def reset_button_clicked_cb(self, button):
         app = self.app
         bm = app.brushmanager
-        parent_brush = bm.get_parent_brush(brushinfo=app.brush)
-        if parent_brush:
+        if parent_brush := bm.get_parent_brush(brushinfo=app.brush):
             parent_binf = parent_brush.get_brushinfo()
             for cname in self.adjustable_settings:
                 parent_value = parent_binf.get_base_value(cname)
@@ -703,10 +693,7 @@ class BrushworkModeMixin (InteractionMode):
         if cmd is not None:
             self.brushwork_commit(model, abrupt=abrupt)
         # New segment of brushwork
-        if layer is None:
-            layer_path = model.layer_stack.current_path
-        else:
-            layer_path = None
+        layer_path = model.layer_stack.current_path if layer is None else None
         cmd = lib.command.Brushwork(
             model,
             layer_path=layer_path,
@@ -742,8 +729,7 @@ class BrushworkModeMixin (InteractionMode):
             barrel_rotation = 0.0
             cmd.stroke_to(dtime, x, y, pressure, xtilt, ytilt,
                           viewzoom, viewrotation, barrel_rotation)
-        changed = cmd.stop_recording(revert=False)
-        if changed:
+        if changed := cmd.stop_recording(revert=False):
             model.do(cmd)
 
     def brushwork_rollback(self, model):
@@ -841,14 +827,7 @@ class BrushworkModeMixin (InteractionMode):
 
         """
         logger.debug("BrushworkModeMixin: leave()")
-        # FIXME: The mode stack should be telling enter() and leave()
-        # FIXME: whether this is an initial/final call.
-        # FIXME: Stack state tracking should be unnecessary inside mode objs.
-        still_stacked = False
-        for mode in self.doc.modes:
-            if mode is self:
-                still_stacked = True
-                break
+        still_stacked = any(mode is self for mode in self.doc.modes)
         if not still_stacked:
             self.brushwork_commit_all(abrupt=True)
         super(BrushworkModeMixin, self).leave(**kwds)
@@ -891,19 +870,17 @@ class SingleClickMode (InteractionMode):
         super(SingleClickMode, self).leave(**kwds)
 
     def button_press_cb(self, tdw, event):
-        if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
-            self._button_pressed = 1
-            return False
-        else:
+        if event.button != 1 or event.type != Gdk.EventType.BUTTON_PRESS:
             return super(SingleClickMode, self).button_press_cb(tdw, event)
+        self._button_pressed = 1
+        return False
 
     def button_release_cb(self, tdw, event):
-        if event.button == self._button_pressed:
-            self._button_pressed = None
-            self.clicked_cb(tdw, event)
-            return False
-        else:
+        if event.button != self._button_pressed:
             return super(SingleClickMode, self).button_press_cb(tdw, event)
+        self._button_pressed = None
+        self.clicked_cb(tdw, event)
+        return False
 
     def clicked_cb(self, tdw, event):
         assert not hasattr(super(SingleClickMode, self), "clicked_cb")
@@ -1107,7 +1084,7 @@ class DragMode (InteractionMode):
             # some children might override self.inactive_cursor as read-only
             try:
                 self.inactive_cursor = self.doc.app.cursors. \
-                        get_action_cursor(self.ACTION_NAME,
+                            get_action_cursor(self.ACTION_NAME,
                                           gui.cursor.Name.ARROW)
             except AttributeError:
                 pass
@@ -1118,20 +1095,19 @@ class DragMode (InteractionMode):
                 self.initial_modifiers = 0
                 return
             old_modifiers = getattr(self, "initial_modifiers", None)
-            if old_modifiers is not None:
-                # Re-entering due to an overlying mode being popped
-                if old_modifiers != 0:
-                    # This mode started with modifiers held
-                    modifiers = self.current_modifiers()
-                    if (modifiers & old_modifiers) == 0:
-                        # But none of them are held any more,
-                        # so queue a further pop.
-                        GLib.idle_add(self.__pop_modestack_idle_cb)
-            else:
+            if old_modifiers is None:
                 # This mode is being entered for the first time;
                 # record modifiers
                 modifiers = self.current_modifiers()
                 self.initial_modifiers = self.current_modifiers()
+
+            elif old_modifiers != 0:
+                # This mode started with modifiers held
+                modifiers = self.current_modifiers()
+                if (modifiers & old_modifiers) == 0:
+                    # But none of them are held any more,
+                    # so queue a further pop.
+                    GLib.idle_add(self.__pop_modestack_idle_cb)
 
     def __pop_modestack_idle_cb(self):
         # Pop the mode stack when this mode is re-entered but has to leave
@@ -1209,8 +1185,6 @@ class DragMode (InteractionMode):
             return True
 
         if self.SPRING_LOADED:
-            if event.is_modifier and self.in_drag:
-                return False
             if self.initial_modifiers:
                 modifiers = self.current_modifiers()
                 if modifiers & self.initial_modifiers == 0:
@@ -1258,11 +1232,9 @@ class OneshotDragMode (DragMode):
             if (self.initial_modifiers & self.current_modifiers()) == 0:
                 if self is self.doc.modes.top:
                     self.doc.modes.pop()
-        else:
-            # No modifiers were held when this mode was entered.
-            if self.temporary_activation or (not self.unmodified_persist):
-                if self is self.doc.modes.top:
-                    self.doc.modes.pop()
+        elif self.temporary_activation or (not self.unmodified_persist):
+            if self is self.doc.modes.top:
+                self.doc.modes.pop()
         return super(OneshotDragMode, self).drag_stop_cb(tdw)
 
 
@@ -1353,10 +1325,7 @@ class ModeStack (object):
         found, or the stack is emptied, then the new mode is pushed.
 
         """
-        # Pop until the stack is empty, or the top mode is compatible
-        old_mode = None
-        if len(self._stack) > 0:
-            old_mode = self._stack[-1]
+        old_mode = self._stack[-1] if len(self._stack) > 0 else None
         while len(self._stack) > 0:
             if mode.stackable_on(self._stack[-1]):
                 break
@@ -1406,9 +1375,7 @@ class ModeStack (object):
         :type replacement: `InteractionMode`.
 
         """
-        old_top_mode = None
-        if len(self._stack) > 0:
-            old_top_mode = self._stack[-1]
+        old_top_mode = self._stack[-1] if len(self._stack) > 0 else None
         while len(self._stack) > 0:
             old_mode = self._stack.pop(-1)
             old_mode.leave()
@@ -1445,18 +1412,14 @@ class ModeStack (object):
         """
         if len(self._stack) > 0:
             return None
-        if replacement is not None:
-            mode = replacement
-        else:
-            mode = self.default_mode_class()
+        mode = replacement if replacement is not None else self.default_mode_class()
         self._stack.append(mode)
         mode.enter(doc=self._doc)
         return mode
 
     def __repr__(self):
         """Plain-text representation."""
-        s = '<ModeStack ['
-        s += ", ".join([m.__class__.__name__ for m in self._stack])
+        s = '<ModeStack [' + ", ".join([m.__class__.__name__ for m in self._stack])
         s += ']>'
         return s
 
@@ -1469,5 +1432,4 @@ class ModeStack (object):
         return True
 
     def __iter__(self):
-        for mode in self._stack:
-            yield mode
+        yield from self._stack

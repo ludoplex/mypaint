@@ -309,10 +309,7 @@ class BrushIconEditor (Gtk.Grid):
 
     def _update_widgets(self):
         editing = self._brush_to_edit is not None
-        if editing:
-            brush = self._brush_to_edit
-        else:
-            brush = self._bm.selected_brush
+        brush = self._brush_to_edit if editing else self._bm.selected_brush
         # Fairly rare: corresponds to no brush being selected on startup
         valid = brush.name is not None
         # Button states

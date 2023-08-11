@@ -335,9 +335,7 @@ class PaletteEditorDialog (Gtk.Dialog):
                 emptyish = True
         can_save = not emptyish
         can_clear = not emptyish
-        can_remove = True
-        if emptyish or self._mgr.palette.match_position is None:
-            can_remove = False
+        can_remove = not emptyish and self._mgr.palette.match_position is not None
         self._save_button.set_sensitive(can_save)
         self._remove_button.set_sensitive(can_remove)
         self._clear_button.set_sensitive(can_clear)
@@ -483,7 +481,7 @@ class _PalettePreview (Gtk.DrawingArea):
         ncolors = len(self._palette)
         if ncolors == 0:
             return
-        if not ncolumns == 0:
+        if ncolumns != 0:
             s = w / ncolumns
             s = clamp(s, s_min, s_max)
             s = int(s)
@@ -588,27 +586,25 @@ class _PaletteGridLayout (ColorAdjusterWidget):
             # Fitted to the major dimension
             size = int(min(width / ncolumns, height / nrows))
             size = self._constrain_swatch_size(size)
-        else:
-            # Free-flowing
-            if ncolors > 0:
-                size = int(math.sqrt((width * height) / ncolors))
+        elif ncolors > 0:
+            size = int(math.sqrt((width * height) / ncolors))
+            size = self._constrain_swatch_size(size)
+            ncolumns = max(1, min(ncolors, width // size))
+            nrows = max(1, int(ncolors // ncolumns))
+            if int(ncolors % ncolumns) > 0:
+                nrows += 1
+            if nrows * size > height or ncolumns * size > width:
+                size = max(1, min(int(height // nrows),
+                                  int(width // ncolumns)))
                 size = self._constrain_swatch_size(size)
                 ncolumns = max(1, min(ncolors, width // size))
                 nrows = max(1, int(ncolors // ncolumns))
                 if int(ncolors % ncolumns) > 0:
                     nrows += 1
-                if nrows * size > height or ncolumns * size > width:
-                    size = max(1, min(int(height // nrows),
-                                      int(width // ncolumns)))
-                    size = self._constrain_swatch_size(size)
-                    ncolumns = max(1, min(ncolors, width // size))
-                    nrows = max(1, int(ncolors // ncolumns))
-                    if int(ncolors % ncolumns) > 0:
-                        nrows += 1
-            else:
-                nrows = 0
-                ncolumns = 0
-                size = self._SWATCH_SIZE_NOMINAL
+        else:
+            nrows = 0
+            ncolumns = 0
+            size = self._SWATCH_SIZE_NOMINAL
         self._rows = nrows
         self._columns = ncolumns
         self._swatch_size = size
@@ -632,17 +628,16 @@ class _PaletteGridLayout (ColorAdjusterWidget):
         if None in (self._rows, self._columns):
             logger.debug("layout changed: null preexisting layout info")
             layout_changed = True
-        else:
-            if palette.columns != self._last_palette_columns:
+        elif palette.columns == self._last_palette_columns:
+            ncells = self._rows * self._columns
+            ncolors = len(palette)
+            if ncolors > ncells or ncolors <= ncells - self._columns:
+                logger.debug("layout changed: cannot fit palette into "
+                             "currently calculated space")
                 layout_changed = True
-                logger.debug("layout changed: different number of columns")
-            else:
-                ncells = self._rows * self._columns
-                ncolors = len(palette)
-                if ncolors > ncells or ncolors <= ncells - self._columns:
-                    logger.debug("layout changed: cannot fit palette into "
-                                 "currently calculated space")
-                    layout_changed = True
+        else:
+            layout_changed = True
+            logger.debug("layout changed: different number of columns")
         # Queue a resize (and an implicit redraw) if the layout has changed,
         # or just a redraw.
         if layout_changed:
@@ -713,9 +708,9 @@ class _PaletteGridLayout (ColorAdjusterWidget):
         x, y = event.x, event.y
         i = self.get_index_at_pos(x, y, nearest=False)
         mgr = self.get_color_manager()
-        is_empty = mgr.palette.get_color(i) is None
         if event.button == 1:
-            if not (is_empty and not self.can_select_empty):
+            is_empty = mgr.palette.get_color(i) is None
+            if not is_empty or self.can_select_empty:
                 mgr.palette.set_match_position(i)
                 mgr.palette.set_match_is_approx(False)
             return False
@@ -852,7 +847,7 @@ class _PaletteGridLayout (ColorAdjusterWidget):
     def _insert_empty_row_cb(self, menuitem, target_i):
         row_start_i = (target_i // self._columns) * self._columns
         palette = self.get_color_manager().palette
-        for i in range(palette.get_columns()):
+        for _ in range(palette.get_columns()):
             palette.insert(row_start_i, None)
 
     def _insert_empty_column_cb(self, menuitem, target_i):
@@ -933,15 +928,14 @@ class _PaletteGridLayout (ColorAdjusterWidget):
         """GtkWidget size negotiation implementation.
         """
         ncolors, nrows, ncolumns = self._get_palette_dimensions()
-        if ncolumns and ncolumns:
+        if ncolumns:
             # Horizontal fit, assume rows <= columns
             min_w = self._SWATCH_SIZE_MIN * ncolumns
-            nat_w = self._SWATCH_SIZE_NOMINAL * ncolumns
         else:
             # Free-flowing, across and then down
             ncolumns = max(1, min(self._PREFERRED_COLUMNS, ncolors))
             min_w = self._SWATCH_SIZE_MIN
-            nat_w = self._SWATCH_SIZE_NOMINAL * ncolumns
+        nat_w = self._SWATCH_SIZE_NOMINAL * ncolumns
         return min_w, max(min_w, nat_w)
 
     def do_get_preferred_height_for_width(self, width):
@@ -1053,7 +1047,6 @@ class _PaletteGridLayout (ColorAdjusterWidget):
             insert = mgr.palette.get_color(i) is not None
             self._paint_marker(cr, x, y, insert=insert)
 
-        # Position of the previous click
         elif self.show_matched_color:
             i = mgr.palette.match_position
             if i is not None:
@@ -1062,7 +1055,7 @@ class _PaletteGridLayout (ColorAdjusterWidget):
                 marker_kw = dict(bg_width=3, fg_width=1,
                                  bg_dash=[2, 3], fg_dash=[2, 3])
                 if not mgr.palette.match_is_approx:
-                    marker_kw.update(dict(bg_width=4, fg_width=1))
+                    marker_kw |= dict(bg_width=4, fg_width=1)
                 self._paint_marker(*marker_args, **marker_kw)
 
     def get_position_for_index(self, i):
@@ -1090,16 +1083,14 @@ class _PaletteGridLayout (ColorAdjusterWidget):
             dx = (wd - l_wd) / 2.0
         if l_ht < ht:
             dy = (ht - l_ht) / 2.0
-        return 1 + int(dx), 1 + int(dy)
+        return 1 + dx, 1 + dy
 
     def get_color_at_position(self, x, y):
         i = self.get_index_at_pos(x, y)
         if i is not None:
             mgr = self.get_color_manager()
             col = mgr.palette.get_color(i)
-            if col is None:
-                return None
-            return col
+            return None if col is None else col
 
     def set_color_at_position(self, x, y, color):
         i = self.get_index_at_pos(x, y)
@@ -1217,10 +1208,8 @@ class _PaletteGridLayout (ColorAdjusterWidget):
             if target_index is None:
                 # Append if the drop wasn't over a swatch
                 target_index = len(mgr.palette)
-            else:
-                # Insert before populated swatches, or overwrite empties
-                if mgr.palette.get_color(target_index) is None:
-                    mgr.palette.pop(target_index)
+            elif mgr.palette.get_color(target_index) is None:
+                mgr.palette.pop(target_index)
             mgr.palette.insert(target_index, color)
         self._insert_target_index = None
         self.queue_draw()
@@ -1443,8 +1432,6 @@ def _palette_render(palette, cr, rows, columns, swatch_size,
             fill_fg_rgb = light_col.get_rgb()
             sh_col = HCYColor(color=bg_color)
             sh_col.y *= 0.75
-            sh_col.c *= 0.5
-            sh_rgb = sh_col.get_rgb()
         else:
             # Color swatch
             hi_col = HCYColor(color=col)
@@ -1452,12 +1439,11 @@ def _palette_render(palette, cr, rows, columns, swatch_size,
             hi_col.c = min(hi_col.c * 1.1, 1)
             sh_col = HCYColor(color=col)
             sh_col.y *= 0.666
-            sh_col.c *= 0.5
             hi_rgb = hi_col.get_rgb()
             fill_bg_rgb = col.get_rgb()
             fill_fg_rgb = None
-            sh_rgb = sh_col.get_rgb()
-
+        sh_col.c *= 0.5
+        sh_rgb = sh_col.get_rgb()
         # Draw the swatch / color chip
         cr.set_source_rgb(*sh_rgb)
         cr.rectangle(s_x, s_y, s_w, s_h)

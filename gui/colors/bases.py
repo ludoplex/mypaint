@@ -123,10 +123,10 @@ class IconRenderable (object):
         dpi = 90.0
         for size in (48, 32, 24, 22, 16, 'scalable'):
             if size == 'scalable':
-                path = "%s/hicolor/scalable/actions" % (dir_name,)
+                path = f"{dir_name}/hicolor/scalable/actions"
                 if not os.path.exists(path):
                     os.makedirs(path)
-                filename = "%s/%s.svg" % (path, icon_name)
+                filename = f"{path}/{icon_name}.svg"
                 s = 48.0
                 scale = 72/dpi
                 pts = s*scale
@@ -137,7 +137,7 @@ class IconRenderable (object):
                 path = "%s/hicolor/%dx%d/actions" % (dir_name, size, size)
                 if not os.path.exists(path):
                     os.makedirs(path)
-                filename = "%s/%s.png" % (path, icon_name)
+                filename = f"{path}/{icon_name}.png"
                 surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
                 s = size
                 cr = cairo.Context(surf)

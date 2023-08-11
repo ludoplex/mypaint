@@ -159,8 +159,7 @@ class SymmetryEditMode (gui.mode.ScrollableModeMixin, gui.mode.DragMode):
             _EditZone.MOVE_Y_AXIS: self._STATUSBAR_MOVE_AXIS_MSG,
             _EditZone.DELETE_AXIS: self._STATUSBAR_DELETE_AXIS_MSG,
         }
-        msg = msgs.get(self.zone, None)
-        if msg:
+        if msg := msgs.get(self.zone, None):
             statusbar.push(statusbar_cid, msg)
             self._last_msg_zone = self.zone
 
@@ -500,15 +499,13 @@ class SymmetryEditOptionsWidget (Gtk.Alignment):
         dialog_content_box.pack_start(grid, True, True, 0)
         self._axis_pos_y_dialog = dialog
 
-        # Layout grid
-        row = 0
         grid = Gtk.Grid()
         grid.set_border_width(gui.widgets.SPACING_CRAMPED)
         grid.set_row_spacing(gui.widgets.SPACING_CRAMPED)
         grid.set_column_spacing(gui.widgets.SPACING_CRAMPED)
         self.add(grid)
 
-        row += 1
+        row = 0 + 1
         label = Gtk.Label(self._ALPHA_LABEL_TEXT)
         label.set_hexpand(False)
         label.set_halign(Gtk.Align.START)

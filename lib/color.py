@@ -194,14 +194,13 @@ class UIColor (object):
     ]
 
     @classmethod
-    def new_from_hex_str(class_, hex_str, default=[0.5, 0.5, 0.5]):
+    def new_from_hex_str(cls, hex_str, default=[0.5, 0.5, 0.5]):
         """Construct from an RGB hex string, e.g. ``#ff0000``.
         """
         hex_str = str(hex_str)
         r, g, b = default
-        for pr, pd in class_.__HEX_PARSE_TABLE:
-            m = pr.match(hex_str)
-            if m:
+        for pr, pd in cls.__HEX_PARSE_TABLE:
+            if m := pr.match(hex_str):
                 r, g, b = [float.fromhex(x)/pd for x in m.groups()]
                 break
         return RGBColor(r, g, b)
@@ -221,11 +220,10 @@ class UIColor (object):
 
         """
         r, g, b = [int(c * 0xff) for c in self.get_rgb()]
-        pixel = (r << 24) | (g << 16) | (b << 8) | 0xff
-        return pixel
+        return (r << 24) | (g << 16) | (b << 8) | 0xff
 
     @classmethod
-    def new_from_pixbuf_average(class_, pixbuf):
+    def new_from_pixbuf_average(cls, pixbuf):
         """Returns the the average of all colors in a pixbuf.
 
         >>> p = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 5, 5)
@@ -475,9 +473,7 @@ class HSVColor (UIColor):
         else:
             t1 = [round(c, 3) for c in t1]
             t2 = [round(c, 3) for c in t2]
-            if t1[-1] == t2[-1] == 0:
-                return True
-            return t1 == t2
+            return True if t1[-1] == t2[-1] == 0 else t1 == t2
 
 
 class HCYColor (UIColor):
@@ -623,9 +619,7 @@ class HCYColor (UIColor):
             t2 = [round(c, 3) for c in t2]
             if t1[-1] == t2[-1] == 0:
                 return True
-            if t1[-1] == t2[-1] == 1:
-                return True
-            return t1 == t2
+            return True if t1[-1] == t2[-1] == 1 else t1 == t2
 
 
 class YCbCrColor (UIColor):
@@ -820,12 +814,7 @@ def RGB_to_HCY(rgb):
     h /= 6.0
 
     # Chroma, relative to the RGB gamut envelope.
-    if r == g == b:
-        # Avoid a division by zero for the achromatic case.
-        c = 0.0
-    else:
-        # For the derivation, see the GLHS paper.
-        c = max((y-n)/y, (p-y)/(1-y))
+    c = 0.0 if r == g == b else max((y-n)/y, (p-y)/(1-y))
     return h, c, y
 
 

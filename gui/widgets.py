@@ -160,10 +160,7 @@ def get_toolbar_icon_size():
     from gui.application import get_app
     app = get_app()
     size = str(app.preferences.get("ui.toolbar_icon_size", "large"))
-    if size.lower() == 'small':
-        return ICON_SIZE_SMALL
-    else:
-        return ICON_SIZE_LARGE
+    return ICON_SIZE_SMALL if size.lower() == 'small' else ICON_SIZE_LARGE
 
 
 def with_wait_cursor(func):

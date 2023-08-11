@@ -88,21 +88,21 @@ class Profiler (object):
                 # ugly trick to remove "user does nothing" from profile
         logger.info('--- GUI Profiling ends ---')
 
-        pstats_filepath = os.path.join(self._tempdir, basename + ".pstats")
+        pstats_filepath = os.path.join(self._tempdir, f"{basename}.pstats")
         if os.path.exists(pstats_filepath):
             os.unlink(pstats_filepath)
         profile.dump_stats(pstats_filepath)
         logger.debug('profile written to %r', pstats_filepath)
 
         try:
-            dot_filepath = os.path.join(self._tempdir, basename + ".dot")
+            dot_filepath = os.path.join(self._tempdir, f"{basename}.dot")
             if os.path.exists(dot_filepath):
                 os.unlink(dot_filepath)
             cmd = list(self.GPROF2DOT) + ["-o", dot_filepath, pstats_filepath]
             logger.debug("Running %r...", cmd)
             subprocess.check_call(cmd)
 
-            png_filepath = os.path.join(self._tempdir, basename + ".png")
+            png_filepath = os.path.join(self._tempdir, f"{basename}.png")
             if os.path.exists(png_filepath):
                 os.unlink(png_filepath)
             cmd = list(self.DOT2PNG) + ["-o", png_filepath, dot_filepath]

@@ -95,15 +95,15 @@ def spline_iter(tuples, double_first=True, double_last=True):
     """
     cint = [None, None, None, None]
     if double_first:
-        cint[0:3] = cint[1:4]
+        cint[:3] = cint[1:4]
         cint[3] = np.array(tuples[0])
     for ctrlpt in tuples:
-        cint[0:3] = cint[1:4]
+        cint[:3] = cint[1:4]
         cint[3] = np.array(ctrlpt)
-        if not any((a is None) for a in cint):
+        if all(a is not None for a in cint):
             yield cint
     if double_last:
-        cint[0:3] = cint[1:4]
+        cint[:3] = cint[1:4]
         cint[3] = np.array(tuples[-1])
         yield cint
 
@@ -523,6 +523,6 @@ if __name__ == '__main__':
         myb_pixbuf = render_brush_preview_pixbuf(myb_brushinfo)
         if myb_pixbuf is not None:
             myb_basename = myb_file[:-4]
-            png_file = "%s_autopreview.png" % (myb_file,)
+            png_file = f"{myb_file}_autopreview.png"
             logger.info("Saving to %r...", png_file)
             lib.pixbuf.save(myb_pixbuf, png_file, "png")

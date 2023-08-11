@@ -119,7 +119,7 @@ class RotateViewMode (gui.mode.ScrollableModeMixin, gui.mode.OneshotDragMode):
     def get_name(cls):
         return _(u"Rotate View")
 
-    def get_usage(cls):
+    def get_usage(self):
         return _(u"Rotate the canvas view")
 
     @property

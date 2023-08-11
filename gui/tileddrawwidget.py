@@ -52,14 +52,14 @@ class TiledDrawWidget (Gtk.EventBox):
     __tdw_refs = []
 
     @classmethod
-    def get_active_tdw(kin):  # noqa: N804
+    def get_active_tdw(cls):    # noqa: N804
         """Returns the most recently created or entered TDW.
         """
         # Find and return the first visible, mapped etc. TDW in the list
         invis_refs = []
         active_tdw = None
-        while len(kin.__tdw_refs) > 0:
-            tdw_ref = kin.__tdw_refs[0]
+        while len(cls.__tdw_refs) > 0:
+            tdw_ref = cls.__tdw_refs[0]
             tdw = tdw_ref()
             if tdw is not None:
                 if tdw.get_window() is not None and tdw.get_visible():
@@ -67,8 +67,8 @@ class TiledDrawWidget (Gtk.EventBox):
                     break
                 else:
                     invis_refs.append(tdw_ref)
-            kin.__tdw_refs.pop(0)
-        kin.__tdw_refs.extend(invis_refs)
+            cls.__tdw_refs.pop(0)
+        cls.__tdw_refs.extend(invis_refs)
         assert active_tdw is not None
         return active_tdw
 
@@ -353,8 +353,7 @@ class TiledDrawWidget (Gtk.EventBox):
         w = alloc.width
         h = alloc.height
         corners = [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
-        corners = [self.display_to_model(*p) for p in corners]
-        return corners
+        return [self.display_to_model(*p) for p in corners]
 
     @property
     def recenter_on_model_coords(self):
@@ -634,8 +633,13 @@ class DrawCursorMixin(object):
     def brush_modified_cb(self, settings):
         """Handles brush modifications: set up by the main TDW.
         """
-        if settings & set(['radius_logarithmic', 'offset_by_random',
-                           'eraser', 'lock_alpha', 'colorize']):
+        if settings & {
+            'radius_logarithmic',
+            'offset_by_random',
+            'eraser',
+            'lock_alpha',
+            'colorize',
+        }:
             # Reducing the number of updates is probably a good idea
             self.update_cursor()
 
@@ -1061,10 +1065,8 @@ class CanvasRenderer (Gtk.DrawingArea, DrawCursorMixin):
 
         # Render just what we need.
         transformation, surface, sparse, mipmap_level, clip_rect = \
-            self._render_prepare(cr)
-        display_filter = None
-        if use_filter:
-            display_filter = self.display_filter
+                self._render_prepare(cr)
+        display_filter = self.display_filter if use_filter else None
         self._render_execute(
             cr,
             transformation,
@@ -1079,9 +1081,7 @@ class CanvasRenderer (Gtk.DrawingArea, DrawCursorMixin):
 
     @property
     def _draw_real_alpha_checks(self):
-        if not self.app:
-            return True
-        return self.app.preferences["view.real_alpha_checks"]
+        return True if not self.app else self.app.preferences["view.real_alpha_checks"]
 
     def _draw_cb(self, widget, cr):
         """Draw handler"""

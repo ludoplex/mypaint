@@ -262,11 +262,14 @@ def open_dialog(title, window, filters):
         filename = dialog.get_filename()
         if isinstance(filename, bytes):
             filename = filename.decode('utf-8')
-        file_format = None
-        for i, (_junk, pattern) in enumerate(filters):
-            if fnmatch(filename, pattern):
-                file_format = i
-                break
+        file_format = next(
+            (
+                i
+                for i, (_junk, pattern) in enumerate(filters)
+                if fnmatch(filename, pattern)
+            ),
+            None,
+        )
         result = (file_format, filename)
     dialog.hide()
     return result
@@ -303,11 +306,14 @@ def save_dialog(title, window, filters, default_format=None):
         filename = dialog.get_filename()
         if isinstance(filename, bytes):
             filename = filename.decode('utf-8')
-        file_format = None
-        for i, (_junk, pattern) in enumerate(filters):
-            if fnmatch(filename, pattern):
-                file_format = i
-                break
+        file_format = next(
+            (
+                i
+                for i, (_junk, pattern) in enumerate(filters)
+                if fnmatch(filename, pattern)
+            ),
+            None,
+        )
         if file_format is None and default_format is not None:
             file_format, suffix = default_format
             filename += suffix

@@ -140,10 +140,6 @@ class ColorPickMode (gui.mode.OneshotDragMode):
             pickcolor_hsv = pickcolor.get_hsv()
             brushcolor_hsv = brushcolor.get_hsv()
             cm = self.doc.app.brush_color_manager
-            c_min = 0.0001
-            y_min = 0.0001
-            y_max = 0.9999
-
             # Normal pick mode, but preserve hue for achromatic colors.
             # Easy because we are staying in HSV
             # and not converting to another color space.
@@ -165,6 +161,10 @@ class ColorPickMode (gui.mode.OneshotDragMode):
                 # and Y from reaching 0.0 or 1.0.
                 brushcolor_hcy = lib.color.RGB_to_HCY(brushcolor_rgb)
                 pickcolor_hcy = lib.color.RGB_to_HCY(pickcolor_rgb)
+
+                c_min = 0.0001
+                y_min = 0.0001
+                y_max = 0.9999
 
                 if mode == "PickHue":
                     brushcolornew_hcy = (

@@ -47,12 +47,9 @@ def add_objects_from_template_string(builder, buffer_, object_ids, params):
     for oid in object_ids:
         oid2 = oid.format(**params)
         if oid == oid2:
-            raise ValueError("object_id %s unchanged after .format()ing"
-                             % oid)
+            raise ValueError(f"object_id {oid} unchanged after .format()ing")
         object_ids2.append(oid2)
-    params_esc = {}
-    for p, v in params.items():
-        params_esc[p] = lib.xml.escape(v)
+    params_esc = {p: lib.xml.escape(v) for p, v in params.items()}
     buffer_2 = buffer_.format(**params_esc)
     if buffer_2 == buffer_:
         raise ValueError("buffer_ unchanged after .format()ing")
