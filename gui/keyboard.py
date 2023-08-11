@@ -218,10 +218,14 @@ class KeyboardManager:
         # Determines which is the active doc for the purposes of keyboard
         # event dispatch.
         active_tdw = gui.tileddrawwidget.TiledDrawWidget.get_active_tdw()
-        for doc in gui.document.Document.get_instances():
-            if doc.tdw is active_tdw:
-                return (doc, doc.tdw)
-        return (None, None)
+        return next(
+            (
+                (doc, doc.tdw)
+                for doc in gui.document.Document.get_instances()
+                if doc.tdw is active_tdw
+            ),
+            (None, None),
+        )
 
     def _dispatch_fallthru_key_press_event(self, win, event):
         # Fall-through behavior: handle via the active document.
@@ -293,8 +297,7 @@ class KeyboardManager:
         else:
             # find an existing Gtk.Action by name
             res = [a for a in self.actions if a.get_name() == action]
-            assert len(res) == 1, \
-                'action %s not found, or found more than once' % action
+            assert len(res) == 1, f'action {action} not found, or found more than once'
             action = res[0]
         self.keymap2[(keyval, modifiers)] = action
 

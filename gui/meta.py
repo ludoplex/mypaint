@@ -15,6 +15,7 @@ See also `lib.meta`.
 
 """
 
+
 ## Imports
 from __future__ import division, print_function
 
@@ -128,80 +129,101 @@ _TASK_COMMA = C_(
 #  - Split out ’nyms and transliterations too?
 
 _AUTHOR_CREDITS = [
-    u"Martin Renold (%s)" % _TASK_PROGRAMMING,
-    u"Yves Combe (%s)" % _TASK_PORTING,
-    u"Popolon (%s)" % _TASK_PROGRAMMING,
-    u"Clement Skau (%s)" % _TASK_PROGRAMMING,
-    u"Jon Nordby (%s)" % _TASK_PROGRAMMING,
-    u"Álinson Santos (%s)" % _TASK_PROGRAMMING,
-    u"Tumagonx (%s)" % _TASK_PORTING,
-    u"Ilya Portnov (%s)" % _TASK_PROGRAMMING,
-    u"Jonas Wagner (%s)" % _TASK_PROGRAMMING,
-    u"Luka Čehovin (%s)" % _TASK_PROGRAMMING,
-    u"Andrew Chadwick (%s)" % _TASK_COMMA.join([
-        _TASK_PROGRAMMING,
-        _TASK_PROJECT_MANAGEMENT,
-        _TASK_PORTING,
-    ]),
-    u"Till Hartmann (%s)" % _TASK_PROGRAMMING,
-    u'David Grundberg (%s)' % _TASK_PROGRAMMING,
-    u"Krzysztof Pasek (%s)" % _TASK_PROGRAMMING,
-    u"Ben O’Steen (%s)" % _TASK_PROGRAMMING,
-    u"Ferry Jérémie (%s)" % _TASK_PROGRAMMING,
-    u"しげっち ‘sigetch’ (%s)" % _TASK_PROGRAMMING,
-    u"Richard Jones (%s)" % _TASK_PROGRAMMING,
-    u"David Gowers (%s)" % _TASK_PROGRAMMING,
-    u"Micael Dias (%s)" % _TASK_PROGRAMMING,
-    u"Anna Harren (%s)" % _TASK_COMMA.join([
-        _TASK_COMMUNITY,
-        _TASK_PROGRAMMING,
-        _TASK_DOCS,
-    ]),
-    u"Sebastien Leon (%s)" % _TASK_PROGRAMMING,
-    u"Ali Lown (%s)" % _TASK_PROGRAMMING,
-    u"Brien Dieterle (%s)" % _TASK_PROGRAMMING,
-    u"Jenny Wong (%s)" % _TASK_PROGRAMMING,
-    u"Dmitry Utkin ‘loentar’ (%s)" % _TASK_PROGRAMMING,
-    u"ShadowKyogre (%s)" % _TASK_PROGRAMMING,
-    u"Albert Westra (%s)" % _TASK_COMMA.join([
-        _TASK_COMMUNITY,
-        _TASK_PROGRAMMING,
-    ]),
-    u"Cortexer (%s)" % _TASK_PROGRAMMING,
-    u"Elliott Sales de Andrade (%s)" % _TASK_PORTING,
-    u"Alberto Leiva Popper (%s)" % _TASK_PROGRAMMING,
-    u"Alinson Xavier (%s)" % _TASK_PROGRAMMING,
+    f"Martin Renold ({_TASK_PROGRAMMING})",
+    f"Yves Combe ({_TASK_PORTING})",
+    f"Popolon ({_TASK_PROGRAMMING})",
+    f"Clement Skau ({_TASK_PROGRAMMING})",
+    f"Jon Nordby ({_TASK_PROGRAMMING})",
+    f"Álinson Santos ({_TASK_PROGRAMMING})",
+    f"Tumagonx ({_TASK_PORTING})",
+    f"Ilya Portnov ({_TASK_PROGRAMMING})",
+    f"Jonas Wagner ({_TASK_PROGRAMMING})",
+    f"Luka Čehovin ({_TASK_PROGRAMMING})",
+    u"Andrew Chadwick (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_PROGRAMMING,
+            _TASK_PROJECT_MANAGEMENT,
+            _TASK_PORTING,
+        ]
+    ),
+    f"Till Hartmann ({_TASK_PROGRAMMING})",
+    f'David Grundberg ({_TASK_PROGRAMMING})',
+    f"Krzysztof Pasek ({_TASK_PROGRAMMING})",
+    f"Ben O’Steen ({_TASK_PROGRAMMING})",
+    f"Ferry Jérémie ({_TASK_PROGRAMMING})",
+    f"しげっち ‘sigetch’ ({_TASK_PROGRAMMING})",
+    f"Richard Jones ({_TASK_PROGRAMMING})",
+    f"David Gowers ({_TASK_PROGRAMMING})",
+    f"Micael Dias ({_TASK_PROGRAMMING})",
+    u"Anna Harren (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_COMMUNITY,
+            _TASK_PROGRAMMING,
+            _TASK_DOCS,
+        ]
+    ),
+    f"Sebastien Leon ({_TASK_PROGRAMMING})",
+    f"Ali Lown ({_TASK_PROGRAMMING})",
+    f"Brien Dieterle ({_TASK_PROGRAMMING})",
+    f"Jenny Wong ({_TASK_PROGRAMMING})",
+    f"Dmitry Utkin ‘loentar’ ({_TASK_PROGRAMMING})",
+    f"ShadowKyogre ({_TASK_PROGRAMMING})",
+    u"Albert Westra (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_COMMUNITY,
+            _TASK_PROGRAMMING,
+        ]
+    ),
+    f"Cortexer ({_TASK_PROGRAMMING})",
+    f"Elliott Sales de Andrade ({_TASK_PORTING})",
+    f"Alberto Leiva Popper ({_TASK_PROGRAMMING})",
+    f"Alinson Xavier ({_TASK_PROGRAMMING})",
 ]
 _ARTIST_CREDITS = [
-    u"Artis Rozentāls (%s)" % _TASK_BRUSHES,
-    u"Popolon (%s)" % _TASK_BRUSHES,
-    u"Marcelo ‘Tanda’ Cerviño (%s)" % _TASK_COMMA.join([
-        _TASK_PATTERNS,
-        _TASK_BRUSHES,
-    ]),
-    u"David Revoy (%s)" % _TASK_COMMA.join([
-        _TASK_BRUSHES,
-        _TASK_TOOL_ICONS,
-        _TASK_OUTREACH,
-    ]),
-    u"Ramón Miranda (%s)" % _TASK_COMMA.join([
-        _TASK_BRUSHES,
-        _TASK_PATTERNS,
-    ]),
-    u"Enrico Guarnieri ‘Ico_dY’ (%s)" % _TASK_BRUSHES,
-    u'Sebastian Kraft (%s)' % _TASK_APP_ICON,
-    u"Nicola Lunghi (%s)" % _TASK_PATTERNS,
-    u"Toni Kasurinen (%s)" % _TASK_BRUSHES,
-    u"Сан Саныч ‘MrMamurk’ (%s)" % _TASK_PATTERNS,
-    u"Andrew Chadwick (%s)" % _TASK_TOOL_ICONS,
-    u"Ben O’Steen (%s)" % _TASK_TOOL_ICONS,
-    u"Guillaume Loussarévian ‘Kaerhon’ (%s)" % _TASK_BRUSHES,
-    u"Jakub Steiner ‘jimmac’ (%s)" % _TASK_COMMA.join([
-        _TASK_APP_ICON,
-        _TASK_PALETTES,
-    ]),
-    u"ShadowKyogre (%s)" % _TASK_TOOL_ICONS,
-    u"Albert Westra (%s)" % _TASK_TOOL_ICONS,
+    f"Artis Rozentāls ({_TASK_BRUSHES})",
+    f"Popolon ({_TASK_BRUSHES})",
+    u"Marcelo ‘Tanda’ Cerviño (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_PATTERNS,
+            _TASK_BRUSHES,
+        ]
+    ),
+    u"David Revoy (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_BRUSHES,
+            _TASK_TOOL_ICONS,
+            _TASK_OUTREACH,
+        ]
+    ),
+    u"Ramón Miranda (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_BRUSHES,
+            _TASK_PATTERNS,
+        ]
+    ),
+    f"Enrico Guarnieri ‘Ico_dY’ ({_TASK_BRUSHES})",
+    f'Sebastian Kraft ({_TASK_APP_ICON})',
+    f"Nicola Lunghi ({_TASK_PATTERNS})",
+    f"Toni Kasurinen ({_TASK_BRUSHES})",
+    f"Сан Саныч ‘MrMamurk’ ({_TASK_PATTERNS})",
+    f"Andrew Chadwick ({_TASK_TOOL_ICONS})",
+    f"Ben O’Steen ({_TASK_TOOL_ICONS})",
+    f"Guillaume Loussarévian ‘Kaerhon’ ({_TASK_BRUSHES})",
+    u"Jakub Steiner ‘jimmac’ (%s)"
+    % _TASK_COMMA.join(
+        [
+            _TASK_APP_ICON,
+            _TASK_PALETTES,
+        ]
+    ),
+    f"ShadowKyogre ({_TASK_TOOL_ICONS})",
+    f"Albert Westra ({_TASK_TOOL_ICONS})",
 ]
 _TRANSLATOR_CREDITS = C_(
     "About dialog: credits: translator credits (your name(s) here!)",

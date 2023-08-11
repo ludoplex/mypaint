@@ -329,10 +329,9 @@ class BrushManager (object):
                 for b in their_brushes:
                     if b in our_brushes:
                         insert_index = our_brushes.index(b) + 1
-                    else:
-                        if b not in base_brushes:
-                            our_brushes.insert(insert_index, b)
-                            insert_index += 1
+                    elif b not in base_brushes:
+                        our_brushes.insert(insert_index, b)
+                        insert_index += 1
                 # remove deleted brushes
                 for b in base_brushes:
                     if b not in their_brushes and b in our_brushes:
@@ -360,8 +359,7 @@ class BrushManager (object):
             if name.endswith('.myb'):
                 result.append(name[:-4])
             elif os.path.isdir(path + name):
-                for name2 in self._list_brushes(path + name):
-                    result.append(name + '/' + name2)
+                result.extend(f'{name}/{name2}' for name2 in self._list_brushes(path + name))
         return result
 
     def _init_unordered_groups(self, brush_cache):
@@ -396,12 +394,11 @@ class BrushManager (object):
                 i_str = name.replace(_BRUSH_HISTORY_NAME_PREFIX, '')
                 i = int(i_str)
                 self.history[i] = b
-            else:
-                if not self.is_in_brushlist(b):
-                    logger.info("Unassigned brush %r: assigning to %r",
-                                name, FOUND_BRUSHES_GROUP)
-                    brushes = self.groups.setdefault(FOUND_BRUSHES_GROUP, [])
-                    brushes.insert(0, b)
+            elif not self.is_in_brushlist(b):
+                logger.info("Unassigned brush %r: assigning to %r",
+                            name, FOUND_BRUSHES_GROUP)
+                brushes = self.groups.setdefault(FOUND_BRUSHES_GROUP, [])
+                brushes.insert(0, b)
 
     def _init_default_brushkeys_and_history(self):
         """Assign sensible defaults for brushkeys and history.
@@ -443,8 +440,8 @@ class BrushManager (object):
     def _init_groups(self):
         """Initialize brush groups, loading them from disk."""
 
-        self.contexts = [None for i in xrange(_NUM_BRUSHKEYS)]
-        self.history = [None for i in xrange(_BRUSH_HISTORY_SIZE)]
+        self.contexts = [None for _ in xrange(_NUM_BRUSHKEYS)]
+        self.history = [None for _ in xrange(_BRUSH_HISTORY_SIZE)]
 
         brush_cache = {}
         self._init_ordered_groups(brush_cache)
@@ -596,10 +593,7 @@ class BrushManager (object):
                     name = name.decode("utf-8")
                 names.append(name)
 
-            readme = None
-            if _BRUSHPACK_README in names:
-                readme = zf.read(_BRUSHPACK_README)
-
+            readme = zf.read(_BRUSHPACK_README) if _BRUSHPACK_README in names else None
             if _BRUSHPACK_ORDERCONF not in names:
                 raise InvalidBrushpack(C_(
                     "brushpack import failure messages",
@@ -625,7 +619,7 @@ class BrushManager (object):
             # brushes found in the zip must match. This should catch
             # encoding screwups, everything should be a unicode object.
             for brush in new_brushes:
-                if brush + '.myb' not in names:
+                if f'{brush}.myb' not in names:
                     raise InvalidBrushpack(C_(
                         "brushpack import failure messages",
                         u"Brush “{brush_name}” is "
@@ -682,16 +676,16 @@ class BrushManager (object):
 
                 for brushname in brushes:
                     # extract the brush from the zip
-                    assert (brushname + '.myb') in zf.namelist()
+                    assert f'{brushname}.myb' in zf.namelist()
                     # Support for utf-8 ZIP filenames that don't have
                     # the utf-8 bit set.
                     brushname_utf8 = brushname.encode('utf-8')
                     try:
-                        myb_data = zf.read(brushname + u'.myb')
+                        myb_data = zf.read(f'{brushname}.myb')
                     except KeyError:
                         myb_data = zf.read(brushname_utf8 + b'.myb')
                     try:
-                        preview_data = zf.read(brushname + u'_prev.png')
+                        preview_data = zf.read(f'{brushname}_prev.png')
                     except KeyError:
                         preview_data = zf.read(brushname_utf8 + b'_prev.png')
                     # in case we have imported that brush already in a
@@ -738,9 +732,9 @@ class BrushManager (object):
 
                         # write to disk and reload brush (if overwritten)
                         prefix = b._get_fileprefix(saving=True)
-                        with open(prefix + '.myb', 'wb') as myb_f:
+                        with open(f'{prefix}.myb', 'wb') as myb_f:
                             myb_f.write(myb_data)
-                        with open(prefix + '_prev.png', 'wb') as preview_f:
+                        with open(f'{prefix}_prev.png', 'wb') as preview_f:
                             preview_f.write(preview_data)
                         b.load()
                     # finally, add it to the group
@@ -773,8 +767,8 @@ class BrushManager (object):
         with zipfile.ZipFile(filename, mode='w') as zf:
             for brush in brushes:
                 prefix = brush._get_fileprefix()
-                zf.write(prefix + u'.myb', brush.name + u'.myb')
-                zf.write(prefix + u'_prev.png', brush.name + u'_prev.png')
+                zf.write(f'{prefix}.myb', f'{brush.name}.myb')
+                zf.write(f'{prefix}_prev.png', f'{brush.name}_prev.png')
                 order_conf += brush.name.encode('utf-8') + b'\n'
             zf.writestr(u'order.conf', order_conf)
 
@@ -799,10 +793,7 @@ class BrushManager (object):
 
     def is_in_brushlist(self, brush):
         """Returns whether this brush is in some brush group's list."""
-        for group, brushes in self.groups.items():
-            if brush in brushes:
-                return True
-        return False
+        return any(brush in brushes for group, brushes in self.groups.items())
 
     def get_parent_brush(self, brush=None, brushinfo=None):
         """Gets the parent `ManagedBrush` for a brush or a `BrushInfo`.
@@ -814,11 +805,8 @@ class BrushManager (object):
         parent_name = brushinfo.get_string_property("parent_brush_name")
         if parent_name is None:
             return None
-        else:
-            parent_brush = self.get_brush_by_name(parent_name)
-            if parent_brush is None:
-                return None
-            return parent_brush
+        parent_brush = self.get_brush_by_name(parent_name)
+        return None if parent_brush is None else parent_brush
 
     ## Brush order within groups, order.conf
 
@@ -838,7 +826,7 @@ class BrushManager (object):
         with open(path, 'w') as f:
             f.write(u'# this file saves brush groups and order\n')
             for group, brushes in self.groups.items():
-                f.write(u'Group: {}\n'.format(group))
+                f.write(f'Group: {group}\n')
                 for b in brushes:
                     f.write(b.name + u'\n')
 
@@ -967,9 +955,7 @@ class BrushManager (object):
         if self.app is None:
             raise ValueError("No app. BrushManager in test mode?")
         wb_info = self.app.brush
-        wb_parent_name = wb_info.settings.get("parent_brush_name")
-        # Remove the to-be-added brush from the history if it's already in it
-        if wb_parent_name:
+        if wb_parent_name := wb_info.settings.get("parent_brush_name"):
             # Favour "same parent" as the main measure of identity,
             # when it's defined.
             for i, hb in enumerate(self.history):
@@ -1234,11 +1220,10 @@ class ManagedBrush(object):
     ## Display
 
     def __repr__(self):
-        if self._brushinfo.settings:
-            pname = self._brushinfo.get_string_property("parent_brush_name")
-            return "<ManagedBrush %r p=%s>" % (self.name, pname)
-        else:
+        if not self._brushinfo.settings:
             return "<ManagedBrush %r (settings not loaded yet)>" % self.name
+        pname = self._brushinfo.get_string_property("parent_brush_name")
+        return "<ManagedBrush %r p=%s>" % (self.name, pname)
 
     def get_display_name(self):
         """Gets a displayable name for the brush."""
@@ -1246,9 +1231,7 @@ class ManagedBrush(object):
             dname = self.name
         else:
             dname = self.brushinfo.get_string_property("parent_brush_name")
-        if dname is None:
-            return _("Unknown Brush")
-        return dname.replace("_", " ")
+        return _("Unknown Brush") if dname is None else dname.replace("_", " ")
 
     ## Cloning
 
@@ -1310,8 +1293,8 @@ class ManagedBrush(object):
             i = 0
             while True:
                 self.name = u'%s%03d' % (prefix, i)
-                a = os.path.join(self.bm.user_brushpath, self.name + u'.myb')
-                b = os.path.join(self.bm.stock_brushpath, self.name + u'.myb')
+                a = os.path.join(self.bm.user_brushpath, f'{self.name}.myb')
+                b = os.path.join(self.bm.stock_brushpath, f'{self.name}.myb')
                 if not os.path.isfile(a) and not os.path.isfile(b):
                     break
                 i += 1
@@ -1327,22 +1310,22 @@ class ManagedBrush(object):
             return prefix
 
         # Loading: try user first, then stock
-        if not os.path.isfile(prefix + u'.myb'):
+        if not os.path.isfile(f'{prefix}.myb'):
             prefix = os.path.join(self.bm.stock_brushpath, self.name)
-        if not os.path.isfile(prefix + u'.myb'):
-            raise IOError('brush "%s" not found' % self.name)
+        if not os.path.isfile(f'{prefix}.myb'):
+            raise IOError(f'brush "{self.name}" not found')
         return prefix
 
     def _remember_mtimes(self):
         prefix = self._get_fileprefix()
         try:
-            preview_file = prefix + '_prev.png'
+            preview_file = f'{prefix}_prev.png'
             self._preview_mtime = os.path.getmtime(preview_file)
         except OSError:
             logger.exception("Failed to update preview file access time")
             self._preview_mtime = None
         try:
-            settings_file = prefix + '.myb'
+            settings_file = f'{prefix}.myb'
             self._settings_mtime = os.path.getmtime(settings_file)
         except OSError:
             logger.exception("Failed to update settings file access time")
@@ -1364,12 +1347,12 @@ class ManagedBrush(object):
             self.preview.composite(tmp, 0, 0, w, h, 0, 0, 1, 1,
                                    GdkPixbuf.InterpType.BILINEAR, 255)
             self.preview = tmp
-        preview_filename = prefix + '_prev.png'
+        preview_filename = f'{prefix}_prev.png'
         logger.debug("Saving brush preview to %r", preview_filename)
         lib.pixbuf.save(self.preview, preview_filename, "png")
         # Save brush settings
         brushinfo = self.brushinfo.clone()
-        settings_filename = prefix + '.myb'
+        settings_filename = f'{prefix}.myb'
         logger.debug("Saving brush settings to %r", settings_filename)
         with open(settings_filename, 'w') as settings_fp:
             settings_fp.write(brushinfo.save_to_string())
@@ -1391,9 +1374,9 @@ class ManagedBrush(object):
         """
 
         prefix = os.path.join(self.bm.user_brushpath, self.name)
-        if os.path.isfile(prefix + '.myb'):
-            os.remove(prefix + '_prev.png')
-            os.remove(prefix + '.myb')
+        if os.path.isfile(f'{prefix}.myb'):
+            os.remove(f'{prefix}_prev.png')
+            os.remove(f'{prefix}.myb')
             try:
                 self.load()
             except IOError:
@@ -1421,7 +1404,7 @@ class ManagedBrush(object):
         """Loads the brush preview as pixbuf into the brush."""
         assert self.name
         prefix = self._get_fileprefix()
-        filename = prefix + '_prev.png'
+        filename = f'{prefix}_prev.png'
         try:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(filename)
         except Exception:
@@ -1434,7 +1417,7 @@ class ManagedBrush(object):
     def _load_settings(self):
         """Loads the brush settings/dynamics from disk."""
         prefix = self._get_fileprefix()
-        filename = prefix + '.myb'
+        filename = f'{prefix}.myb'
         with open(filename) as fp:
             brushinfo_str = fp.read()
         try:
@@ -1450,11 +1433,9 @@ class ManagedBrush(object):
 
     def _has_changed_on_disk(self):
         prefix = self._get_fileprefix()
-        if self._preview_mtime != os.path.getmtime(prefix + '_prev.png'):
+        if self._preview_mtime != os.path.getmtime(f'{prefix}_prev.png'):
             return True
-        if self._settings_mtime != os.path.getmtime(prefix + '.myb'):
-            return True
-        return False
+        return self._settings_mtime != os.path.getmtime(f'{prefix}.myb')
 
     def reload_if_changed(self):
         if self._settings_mtime is None:

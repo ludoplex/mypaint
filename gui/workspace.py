@@ -236,7 +236,7 @@ class Workspace (Gtk.VBox, Gtk.Buildable):
         self._autoreveal_timeout = []
         # Window tracking
         self._floating = set()
-        self._toplevel_pos = dict()
+        self._toplevel_pos = {}
         self._save_toplevel_pos_timeout = None
         self._is_fullscreen = False
         self._is_maximized = False
@@ -286,9 +286,7 @@ class Workspace (Gtk.VBox, Gtk.Buildable):
         assert toplevel_win is not None
         assert toplevel_win is not self
         assert not toplevel_win.get_visible()
-        # Set initial position and fullscreen state
-        toplevel_pos = layout.get("position", None)
-        if toplevel_pos:
+        if toplevel_pos := layout.get("position", None):
             set_initial_window_position(toplevel_win, toplevel_pos)
         if layout.get("fullscreen", False):
             toplevel_win.fullscreen()
@@ -330,13 +328,11 @@ class Workspace (Gtk.VBox, Gtk.Buildable):
         layout = self._initial_layout
         if layout is None:
             return
-        llayout = layout.get("left_sidebar", {})
-        if llayout:
+        if llayout := layout.get("left_sidebar", {}):
             logger.debug("Left sidebar: building from saved layout...")
             num_added_l = self._lstack.build_from_layout(llayout)
             logger.debug("Left sidebar: added %d group(s)", num_added_l)
-        rlayout = layout.get("right_sidebar", {})
-        if rlayout:
+        if rlayout := layout.get("right_sidebar", {}):
             logger.debug("Right sidebar: building from saved layout...")
             num_added_r = self._rstack.build_from_layout(rlayout)
             logger.debug("Right sidebar: added %d group(s)", num_added_r)
@@ -414,8 +410,7 @@ class Workspace (Gtk.VBox, Gtk.Buildable):
 
     def get_canvas(self):
         """Canvas widget (getter)"""
-        widget = self._canvas_scrolls.get_child()
-        return widget
+        return self._canvas_scrolls.get_child()
 
     def _update_canvas_scrolledwindow(self):
         """Update the canvas ScrolledWindow's border."""
@@ -811,9 +806,7 @@ class Workspace (Gtk.VBox, Gtk.Buildable):
                 scrolls = stack.get_parent().get_parent()
                 widgets.append(scrolls)
         widgets.extend(list(self._floating))
-        for bar in [self.header_bar, self.footer_bar]:
-            if bar:
-                widgets.append(bar)
+        widgets.extend(bar for bar in [self.header_bar, self.footer_bar] if bar)
         return widgets
 
     ## Autohide mode: auto-hide timer
@@ -978,7 +971,7 @@ class Workspace (Gtk.VBox, Gtk.Buildable):
         w, h = alloc.width, alloc.height
         x, y = event.x, event.y
         b = cls.AUTOHIDE_REVEAL_BORDER
-        if not (x < b or x > w-b or y < b or y > h-b):
+        if x >= b and x <= w - b and y >= b and y <= h - b:
             return cls._EDGE_NONE
         edges = cls._EDGE_NONE
         if y < b or (y < 5*b and (x < b or x > w-b)):
@@ -1466,10 +1459,7 @@ class ToolStack (Gtk.EventBox):
             else:
                 ttsize = cls.TAB_TOOLTIP_ICON_SIZE
                 tooltip.set_icon_from_icon_name(icon_name, ttsize)
-            if desc is not None:
-                markup_tmpl = "<b>{title}</b>\n{desc}"
-            else:
-                markup_tmpl = "<b>{title}</b>"
+            markup_tmpl = "<b>{title}</b>" if desc is None else "<b>{title}</b>\n{desc}"
             tooltip.set_markup(markup_tmpl.format(
                 title = lib.xml.escape(title),
                 desc = lib.xml.escape(desc),
@@ -1590,8 +1580,7 @@ class ToolStack (Gtk.EventBox):
             tool_descs = []
             for page in nb:
                 tool_widget = page.get_child()
-                tool_desc = factory.identify(tool_widget)
-                if tool_desc:
+                if tool_desc := factory.identify(tool_widget):
                     tool_descs.append(tool_desc)
             active_page = nb.get_current_page()
             group_desc = {"tools": tool_descs, "active_page": active_page}
@@ -1756,7 +1745,7 @@ class ToolStack (Gtk.EventBox):
             return []
         queue = [child]
         notebooks = []
-        while len(queue) > 0:
+        while queue:
             widget = queue.pop(0)
             if isinstance(widget, Gtk.Paned):
                 queue.append(widget.get_child1())
@@ -1764,8 +1753,8 @@ class ToolStack (Gtk.EventBox):
             elif isinstance(widget, Gtk.Notebook):
                 notebooks.append(widget)
             else:
-                warn("Unknown member type: %s" % str(widget), RuntimeWarning)
-        assert len(notebooks) > 0
+                warn(f"Unknown member type: {str(widget)}", RuntimeWarning)
+        assert notebooks
         return notebooks
 
     def _set_first_paned_position(self, size):
@@ -1782,7 +1771,7 @@ class ToolStack (Gtk.EventBox):
             return []
         queue = [child]
         result = []
-        while len(queue) > 0:
+        while queue:
             widget = queue.pop(0)
             if isinstance(widget, Gtk.Paned):
                 result.append(widget)
@@ -1791,10 +1780,7 @@ class ToolStack (Gtk.EventBox):
         return result
 
     def do_size_allocate(self, alloc):
-        # When the size changes, manage the divider position of the final
-        # paned, shrinking or growing the final set of tabs.
-        paneds = self._get_paneds()
-        if paneds:
+        if paneds := self._get_paneds():
             final_paned = paneds[-1]
 
             pos = final_paned.get_position()
@@ -1869,10 +1855,7 @@ class ToolStack (Gtk.EventBox):
                 nb_grandparent.remove(nb_parent)
                 nb_grandparent.add(sib)
 
-        # Detect empty stacks
-        n_tabs_total = 0
-        for nb in self._get_notebooks():
-            n_tabs_total += nb.get_n_pages()
+        n_tabs_total = sum(nb.get_n_pages() for nb in self._get_notebooks())
         parent = self.get_parent()
         if n_tabs_total == 0:
             if isinstance(parent, ToolStackWindow):
@@ -1962,8 +1945,7 @@ class ToolStackWindow (Gtk.Window):
         """
         logger.debug("build_from_layout %r", self)
         n_added = self.stack.build_from_layout(layout.get("contents", {}))
-        pos = layout.get("position", None)
-        if pos:
+        if pos := layout.get("position", None):
             self._layout_position = pos.copy()
         return n_added
 
@@ -1986,10 +1968,8 @@ class ToolStackWindow (Gtk.Window):
 
     def _map_cb(self, widget):
         """Window map event actions"""
-        toplevel = None
         workspace = self.stack.workspace
-        if workspace:
-            toplevel = workspace.get_toplevel()
+        toplevel = workspace.get_toplevel() if workspace else None
         # Things we only need to do on the first window map
         if not self._mapped_once:
             self._mapped_once = True
@@ -2006,13 +1986,6 @@ class ToolStackWindow (Gtk.Window):
             win.set_decorations(decor)
             wmfuncs = Gdk.WMFunction.RESIZE | Gdk.WMFunction.MOVE
             win.set_functions(wmfuncs)
-        # Hack to force an initial x,y position to be what was saved, used
-        # as a workaround for WM bugs and misfeatures.
-        # Forcing the position up front rather than in an idle handler
-        # avoids flickering in Xfce 4.8, when this is necessary.
-        # Xfce 4.8 requires position forcing for second and subsequent
-        # map events too, if a window has been resized due its content growing.
-        # Hopefully we never have to do this twice. Once is too much really.
         if self._onmap_position is not None:
             if self._AGGRESSIVE_POSITIONING_HACK:
                 self._set_onmap_position(False)
@@ -2097,8 +2070,7 @@ class ToolStackWindow (Gtk.Window):
         if workspace is not None:
             title_sep = unicode(workspace.floating_window_title_separator)
             title = title_sep.join(titles)
-            title_suffix = unicode(workspace.floating_window_title_suffix)
-            if title_suffix:
+            if title_suffix := unicode(workspace.floating_window_title_suffix):
                 title += unicode(title_suffix)
             logger.debug(u"Renamed floating window title to \"%s\"", title)
             self.set_title(title)
@@ -2175,8 +2147,7 @@ def _tool_widget_get_icon(widget, icon_size):
         return None
     size_px = min(width_px, height_px)
     if hasattr(widget, "tool_widget_get_icon_pixbuf"):
-        pixbuf = widget.tool_widget_get_icon_pixbuf(size_px)
-        if pixbuf:
+        if pixbuf := widget.tool_widget_get_icon_pixbuf(size_px):
             return (pixbuf, None)
     # Try the icon name property. Fallback is a name we know will work.
     icon_name = getattr(widget, "tool_widget_icon_name", 'missing-image')
@@ -2235,8 +2206,7 @@ def set_initial_window_position(win, pos):
     screen = win.get_screen()
     display = win.get_display()
     devmgr = display and display.get_device_manager() or None
-    ptrdev = devmgr and devmgr.get_client_pointer() or None
-    if ptrdev:
+    if ptrdev := devmgr and devmgr.get_client_pointer() or None:
         ptr_screen, ptr_x, ptr_y = ptrdev.get_position()
         assert ptr_screen is screen, (
             "Screen containing core pointer != screen containing "
@@ -2281,17 +2251,16 @@ def set_initial_window_position(win, pos):
     if w is not None and h is not None:
         final_w = w
         final_h = h
-        if w < 0 or h < 0:
-            if w < 0:
-                if x is not None:
-                    final_w = max(0, targ_geom.w - abs(x) - abs(w))
-                else:
-                    final_w = max(0, targ_geom.w - 2*abs(w))
-            if h < 0:
-                if x is not None:
-                    final_h = max(0, targ_geom.h - abs(y) - abs(h))
-                else:
-                    final_h = max(0, targ_geom.h - 2*abs(h))
+        if w < 0:
+            if x is not None:
+                final_w = max(0, targ_geom.w - abs(x) - abs(w))
+            else:
+                final_w = max(0, targ_geom.w - 2*abs(w))
+        if h < 0:
+            if x is not None:
+                final_h = max(0, targ_geom.h - abs(y) - abs(h))
+            else:
+                final_h = max(0, targ_geom.h - 2*abs(h))
         if final_w > screen_w or final_w < min_usable_size:
             final_w = None
         if final_h > screen_h or final_h < min_usable_size:
@@ -2352,9 +2321,7 @@ def _get_target_area_geometry(screen, mon_num):
     Ref: https://github.com/mypaint/mypaint/issues/437
 
     """
-    geom = None
-    if mon_num >= 0:
-        geom = screen.get_monitor_geometry(mon_num)
+    geom = screen.get_monitor_geometry(mon_num) if mon_num >= 0 else None
     if geom is not None:
         geom = lib.helpers.Rect.new_from_gdk_rectangle(geom)
     else:

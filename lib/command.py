@@ -114,9 +114,7 @@ class CommandStack (object):
 
     def get_last_command(self):
         """Returns the most recently performed command"""
-        if not self.undo_stack:
-            return None
-        return self.undo_stack[-1]
+        return None if not self.undo_stack else self.undo_stack[-1]
 
     def update_last_command(self, **kwargs):
         """Updates the most recently performed command"""
@@ -175,7 +173,7 @@ class Command (object):
         self.doc = weakref.proxy(doc)
 
     def __repr__(self):
-        return "<%s>" % (self.display_name,)
+        return f"<{self.display_name}>"
 
     ## Main Command interface
 
@@ -284,16 +282,12 @@ class Brushwork (Command):
         time = 0.0
         if self._stroke_seq is not None:
             time = self._stroke_seq.total_painting_time
-        repstr = (
-            "<{cls} {id:#x} {seconds:.03f}s "
-            "{self.description!r}>"
-        ).format(
-            cls = self.__class__.__name__,
-            id = id(self),
-            seconds = time,
-            self = self,
+        return ("<{cls} {id:#x} {seconds:.03f}s " "{self.description!r}>").format(
+            cls=self.__class__.__name__,
+            id=id(self),
+            seconds=time,
+            self=self,
         )
-        return repstr
 
     @property
     def display_name(self):
@@ -330,12 +324,12 @@ class Brushwork (Command):
     def redo(self):
         """Performs, or re-performs after undo"""
         model = self.doc
-        layer = self._target_layer
         assert self._recording_finished, "Call stop_recording() first"
         assert self._sshot_before is not None
         assert self._sshot_after is not None
         assert self._time_before is not None
         if not self._sshot_after_applied:
+            layer = self._target_layer
             layer.load_snapshot(self._sshot_after)
             self._sshot_after_applied = True
         # Update painting time
@@ -526,10 +520,7 @@ class FloodFill (Command):
     def redo(self):
         # Pick a source
         layers = self.doc.layer_stack
-        if self.sample_merged:
-            src_layer = layers
-        else:
-            src_layer = layers.current
+        src_layer = layers if self.sample_merged else layers.current
         # Choose a target
         if self.make_new_layer:
             # Write to a new layer
@@ -751,7 +742,7 @@ class MergeVisibleLayers (Command):
                     self._result_insert_path = (path[0],)
                 self._paths_merged.append(path)
             # If nothing was visible, our job is easy
-            if len(self._paths_merged) == 0:
+            if not self._paths_merged:
                 self._nothing_initially_visible = True
                 logger.debug("MergeVisibleLayers: no visible layers")
                 return
@@ -900,10 +891,7 @@ class AddLayer (Command):
 
     @property
     def display_name(self):
-        if self._is_import:
-            tmpl = _("Import Layers")
-        else:
-            tmpl = _("Add {layer_default_name}")
+        tmpl = _("Import Layers") if self._is_import else _("Add {layer_default_name}")
         return tmpl.format(
             layer_default_name=self._layer.DEFAULT_NAME,
         )
@@ -955,12 +943,11 @@ class RemoveLayer (Command):
                 layers.append(repl)
                 layers.set_current_path((0,))
             assert self._unwanted_path == (0,)
-        else:
-            if not layers.deepget(path):
-                if layers.deepget(path_above):
-                    layers.set_current_path(path_above)
-                else:
-                    layers.set_current_path((0,))
+        elif not layers.deepget(path):
+            if layers.deepget(path_above):
+                layers.set_current_path(path_above)
+            else:
+                layers.set_current_path((0,))
 
     def undo(self):
         layers = self.doc.layer_stack
@@ -1188,7 +1175,7 @@ class RestackLayer (Command):
         if lib.layer.path_startswith(targ_path, src_path):
             raise ValueError("Target path %r is inside source path %r"
                              % (targ_path, src_path))
-        if len(targ_path) == 0:
+        if not targ_path:
             raise ValueError("Cannot move a layer to path ()")
         if rootstack.deepget(src_path) is None:
             raise ValueError("Source path %r does not exist"
@@ -1206,7 +1193,6 @@ class RestackLayer (Command):
         src_path = self._src_path
         targ_path = self._targ_path
         rootstack = self.doc.layer_stack
-        affected = []
         oldcurrent = rootstack.current
         # Replace src with a placeholder
         placeholder = lib.layer.PlaceholderLayer(name="moving")
@@ -1214,7 +1200,7 @@ class RestackLayer (Command):
         src_parent = rootstack.deepget(src_path[:-1])
         src_index = src_path[-1]
         src_parent[src_index] = placeholder
-        affected.append(src)
+        affected = [src]
         # Do the insert
         targ_index = targ_path[-1]
         targ_parent = rootstack.deepget(targ_path[:-1])
@@ -1384,10 +1370,7 @@ class SetLayerLocked (Command):
 
     @property
     def display_name(self):
-        if self.new_locked:
-            return _("Lock Layer")
-        else:
-            return _("Unlock Layer")
+        return _("Lock Layer") if self.new_locked else _("Unlock Layer")
 
 
 class SetLayerOpacity (Command):
@@ -1468,10 +1451,7 @@ class SetFrameEnabled (Command):
 
     @property
     def display_name(self):
-        if self.after:
-            return _("Enable Frame")
-        else:
-            return _("Disable Frame")
+        return _("Enable Frame") if self.after else _("Disable Frame")
 
     def __init__(self, doc, enable, **kwds):
         super(SetFrameEnabled, self).__init__(doc, **kwds)

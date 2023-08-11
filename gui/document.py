@@ -252,10 +252,8 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         :rtype: iterable
         """
         for instance_ref in cls._INSTANCE_REFS:
-            instance = instance_ref()
-            if not instance:
-                continue
-            yield instance
+            if instance := instance_ref():
+                yield instance
 
     @classmethod
     def get_primary_instance(cls):
@@ -271,10 +269,14 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         """Get the Document instance which has the active tdw."""
         from gui.tileddrawwidget import TiledDrawWidget
         active_tdw = TiledDrawWidget.get_active_tdw()
-        for instance in cls.get_instances():
-            if instance.tdw is active_tdw:
-                return instance
-        return None
+        return next(
+            (
+                instance
+                for instance in cls.get_instances()
+                if instance.tdw is active_tdw
+            ),
+            None,
+        )
 
     ## Construction
 
@@ -355,8 +357,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         self.saved_view = None
 
         #: Viewport change/manipulation observers.
-        self.view_changed_observers = []
-        self.view_changed_observers.append(self._view_changed_cb)
+        self.view_changed_observers = [self._view_changed_cb]
         self._view_changed_notification_srcid = None
         self.tdw.connect_after(
             "size-allocate",
@@ -456,8 +457,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
                  '%d' % x, rt, self.context_cb)
             s = ('Context0%ds' % x, None, _('Save to Brush %d') % x,
                  '<control>%d' % x, st, self.context_cb)
-            context_actions.append(s)
-            context_actions.append(r)
+            context_actions.extend((s, r))
         ag.add_actions(context_actions)
 
     def _init_stategroups(self):
@@ -533,18 +533,15 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         # Icon names
         style_state = draw_window.get_style_context().get_state()
         try:  # GTK 3.8+
-            if style_state & Gtk.StateFlags.DIR_LTR:
-                direction = 'ltr'
-            else:
-                direction = 'rtl'
+            direction = 'ltr' if style_state & Gtk.StateFlags.DIR_LTR else 'rtl'
         except AttributeError:
             # Deprecated in 3.8
             if draw_window.get_direction() == Gtk.TextDirection.LTR:
                 direction = 'ltr'
             else:
                 direction = 'rtl'
-        undo_icon_name = "mypaint-undo-%s-symbolic" % (direction,)
-        redo_icon_name = "mypaint-redo-%s-symbolic" % (direction,)
+        undo_icon_name = f"mypaint-undo-{direction}-symbolic"
+        redo_icon_name = f"mypaint-redo-{direction}-symbolic"
 
         # Undo
         undo_action = ag.get_action("Undo")
@@ -629,8 +626,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         mode = self.modes.top
         mon = self.app.device_monitor
         dev = event.get_source_device()
-        dev_settings = mon.get_device_settings(dev)
-        if dev_settings:
+        if dev_settings := mon.get_device_settings(dev):
             if not (dev_settings.usage_mask & mode.pointer_behavior):
                 return True
         # Normal event dispatch
@@ -641,8 +637,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         mode = self.modes.top
         mon = self.app.device_monitor
         dev = event.get_source_device()
-        dev_settings = mon.get_device_settings(dev)
-        if dev_settings:
+        if dev_settings := mon.get_device_settings(dev):
             if not (dev_settings.usage_mask & mode.pointer_behavior):
                 return True
         # Normal event dispatch
@@ -654,8 +649,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         mode = self.modes.top
         mon = self.app.device_monitor
         dev = event.get_source_device()
-        dev_settings = mon.get_device_settings(dev)
-        if dev_settings:
+        if dev_settings := mon.get_device_settings(dev):
             if not (dev_settings.usage_mask & mode.scroll_behavior):
                 return True
         CanvasController.scroll_cb(self, tdw, event)
@@ -673,11 +667,9 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
             buttonmap = self.app.button_mapping
             action_name = None
             mods = self.get_current_modifiers()
-            is_modifier = (
-                event.is_modifier
-                or (mods != 0 and event.keyval != Gdk.KEY_space)
-            )
-            if is_modifier:
+            if is_modifier := (
+                event.is_modifier or (mods != 0 and event.keyval != Gdk.KEY_space)
+            ):
                 # If the keypress is a modifier only, determine the
                 # modifier mask a subsequent Button1 press event would
                 # get. This is used for early spring-loaded mode
@@ -688,10 +680,8 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
                 if action_name is not None:
                     if not action_name.endswith("Mode"):
                         action_name = None
-            else:
-                # Strategy 2: pretend that the space bar is really button 2.
-                if event.keyval == Gdk.KEY_space:
-                    action_name = buttonmap.lookup(mods, 2)
+            elif event.keyval == Gdk.KEY_space:
+                action_name = buttonmap.lookup(mods, 2)
 
             # Forbid actions not named in the whitelist, if it's defined
             if len(mode.permitted_switch_actions) > 0:
@@ -711,20 +701,20 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
             # modifiers and button presses.
             self._update_key_pressed_status_message()
 
-            # TODO: Maybe display the inactive cursor belonging to the
-            # TODO:   button1 binding for these modifiers. Blocker: need
-            # TODO:   to do it without instantiating the handler class.
-            # btn1_action_name = buttonmap.lookup(mods, 1)
-            # btn1_handler_type, btn1_handler = gui.buttonmap\
-            #    .get_handler_object(
-            #       self.app,
-            #       btn1_action_name,
-            #    )
-            # if btn1_handler_type == 'mode_class':
-            #    assert issubclass(btn1_handler, gui.mode.DragMode)
-            #    btn1_cursor = btn1_handler.inactive_cursor    # fails.
-            #    if btn1_cursor:
-            #        self.tdw.set_override_cursor(btn1_cursor)
+                # TODO: Maybe display the inactive cursor belonging to the
+                # TODO:   button1 binding for these modifiers. Blocker: need
+                # TODO:   to do it without instantiating the handler class.
+                # btn1_action_name = buttonmap.lookup(mods, 1)
+                # btn1_handler_type, btn1_handler = gui.buttonmap\
+                #    .get_handler_object(
+                #       self.app,
+                #       btn1_action_name,
+                #    )
+                # if btn1_handler_type == 'mode_class':
+                #    assert issubclass(btn1_handler, gui.mode.DragMode)
+                #    btn1_cursor = btn1_handler.inactive_cursor    # fails.
+                #    if btn1_cursor:
+                #        self.tdw.set_override_cursor(btn1_cursor)
 
         # Normal event dispatch
         return CanvasController.key_press_cb(self, win, tdw, event)
@@ -736,8 +726,8 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
     def _dispatch_named_action(self, win, tdw, event, action_name):
         """Dispatch an action looked up via the buttonmap"""
         app = self.app
-        drawwindow = app.drawWindow
         if action_name == 'ShowPopupMenu':
+            drawwindow = app.drawWindow
             # Unfortunately still a special case.
             # Just firing the action doesn't work well with pads which fire a
             # button-release event immediately after the button-press.
@@ -851,10 +841,8 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
             mode_desc = None
             if mode_class:
                 mode_desc = mode_class.get_name()
-            else:
-                action = self.app.find_action(action_name)
-                if action:
-                    mode_desc = action.get_label()
+            elif action := self.app.find_action(action_name):
+                mode_desc = action.get_label()
             if mode_desc:
                 # TRANSLATORS: Statusbar message explaining button and modifier
                 # TRANSLATORS: combinations used to access modes/tools/actions.
@@ -883,8 +871,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
     def _get_clipboard(self):
         """Internal: return the GtkClipboard for the current display"""
         display = self.tdw.get_display()
-        cb = Gtk.Clipboard.get_for_display(display, Gdk.SELECTION_CLIPBOARD)
-        return cb
+        return Gtk.Clipboard.get_for_display(display, Gdk.SELECTION_CLIPBOARD)
 
     def copy_cb(self, action):
         """``CopyLayer`` GtkAction callback: copy layer to clipboard"""
@@ -1054,9 +1041,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
             self.model.select_layer(path=c_path)
             if c_path != old_path:
                 self.layerblink_state.activate()
-            # Find the most recent (last) stroke at the pick point
-            si = layers.current.get_stroke_info_at(x, y)
-            if si:
+            if si := layers.current.get_stroke_info_at(x, y):
                 self.app.restore_brush_from_stroke_info(si)
                 corners = self.tdw.get_corners_model_coords()
                 bbox = lib.helpers.rotated_rectangle_bbox(corners)
@@ -1181,8 +1166,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         """``SelectLayerBelow`` GtkAction callback"""
         layers = self.model.layer_stack
         path = layers.get_current_path()
-        path = layers.path_below(path)
-        if path:
+        if path := layers.path_below(path):
             self.model.select_layer(path=path)
 
         if self.model.layer_stack.current_layer_solo:
@@ -1194,8 +1178,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         """``SelectLayerAbove`` GtkAction callback"""
         layers = self.model.layer_stack
         path = layers.get_current_path()
-        path = layers.path_above(path)
-        if path:
+        if path := layers.path_above(path):
             self.model.select_layer(path=path)
 
         if self.model.layer_stack.current_layer_solo:
@@ -1207,8 +1190,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         """Updates the Select Layer Above/Below actions"""
         app = self.app
         root = self.model.layer_stack
-        current_path = root.current_path
-        if current_path:
+        if current_path := root.current_path:
             has_predecessor = bool(root.path_above(current_path))
             has_successor = bool(root.path_below(current_path))
         else:
@@ -1340,8 +1322,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         """Update bubble up/down actions from the model"""
         app = self.app
         root = self.model.layer_stack
-        current_path = root.current_path
-        if current_path:
+        if current_path := root.current_path:
             deep = len(current_path) > 1
             down_poss = deep or current_path[0] < len(root) - 1
             up_poss = deep or current_path[0] > 0
@@ -1540,8 +1521,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         # TODO: use HCY?
         h, s, v = self.app.brush.get_color_hsv()
         v += 0.08
-        if v > 1.0:
-            v = 1.0
+        v = min(v, 1.0)
         self.app.brush.set_color_hsv((h, s, v))
 
     def darker_cb(self, action):
@@ -1550,8 +1530,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         h, s, v = self.app.brush.get_color_hsv()
         v -= 0.08
         # stop a little higher than 0.0, to avoid resetting hue to 0
-        if v < 0.005:
-            v = 0.005
+        v = max(v, 0.005)
         self.app.brush.set_color_hsv((h, s, v))
 
     def increase_hue_cb(self, action):
@@ -1575,8 +1554,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         # TODO: use HCY?
         h, s, v = self.app.brush.get_color_hsv()
         s += 0.08
-        if s > 1.0:
-            s = 1.0
+        s = min(s, 1.0)
         self.app.brush.set_color_hsv((h, s, v))
 
     def grayer_cb(self, action):
@@ -1585,8 +1563,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         h, s, v = self.app.brush.get_color_hsv()
         s -= 0.08
         # stop a little higher than 0.0, to avoid resetting hue to 0
-        if s < 0.005:
-            s = 0.005
+        s = max(s, 0.005)
         self.app.brush.set_color_hsv((h, s, v))
 
     ## Brush settings
@@ -1620,9 +1597,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         """True if the brush was modified from its saved state"""
         current_bi = self.app.brush
         parent_b = self.app.brushmanager.get_parent_brush(brushinfo=current_bi)
-        if parent_b is None:
-            return True
-        return not parent_b.brushinfo.matches(current_bi)
+        return True if parent_b is None else not parent_b.brushinfo.matches(current_bi)
 
     def _brush_settings_changed_cb(self, *a):
         """Internal callback: updates the UI when brush settings change"""
@@ -1630,9 +1605,8 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         if self.brush_is_modified():
             if not reset_action.get_sensitive():
                 reset_action.set_sensitive(True)
-        else:
-            if reset_action.get_sensitive():
-                reset_action.set_sensitive(False)
+        elif reset_action.get_sensitive():
+            reset_action.set_sensitive(False)
 
     ## Brushkey callbacks
 
@@ -1718,7 +1692,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         elif direction == self.PAN_DOWN:
             self.tdw.scroll(0, +step, ongoing=False)
         else:
-            raise TypeError('unsupported pan() direction=%s' % direction)
+            raise TypeError(f'unsupported pan() direction={direction}')
         self.notify_view_changed()
 
     def zoom(self, direction, center=CENTER_ON_POINTER):
@@ -1752,10 +1726,9 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         elif direction == self.ZOOM_OUTWARDS:
             zoom_index -= 1
         else:
-            raise TypeError('unsupported zoom() direction=%s' % direction)
+            raise TypeError(f'unsupported zoom() direction={direction}')
 
-        if zoom_index < 0:
-            zoom_index = 0
+        zoom_index = max(zoom_index, 0)
         if zoom_index >= len(self.zoomlevel_values):
             zoom_index = len(self.zoomlevel_values) - 1
 
@@ -1785,7 +1758,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         elif direction == self.ROTATE_ANTICLOCKWISE:
             step = -self.ROTATION_STEP
         else:
-            raise TypeError('unsupported direction=%s' % direction)
+            raise TypeError(f'unsupported direction={direction}')
         self.tdw.rotate(
             step,
             center=center,
@@ -1865,10 +1838,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
 
         The reset chosen depends on the action's name.
         """
-        if action is None:
-            action_name = None
-        else:
-            action_name = action.get_name()
+        action_name = None if action is None else action.get_name()
         zoom = mirror = rotation = False
         if action_name is None or 'View' in action_name:
             zoom = mirror = rotation = True
@@ -1984,9 +1954,7 @@ class Document (CanvasController):  # TODO: rename to "DocumentController"
         if self._view_changed_notification_srcid:
             return
         cb = self._view_changed_notification_idle_cb
-        priority = GLib.PRIORITY_LOW
-        if prioritize:
-            priority = GLib.PRIORITY_HIGH_IDLE
+        priority = GLib.PRIORITY_HIGH_IDLE if prioritize else GLib.PRIORITY_LOW
         srcid = GLib.idle_add(cb, priority=priority)
         self._view_changed_notification_srcid = srcid
 

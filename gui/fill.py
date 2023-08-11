@@ -59,7 +59,7 @@ class FloodFillMode (gui.mode.ScrollableModeMixin,
 
     def enter(self, doc, **kwds):
         super(FloodFillMode, self).enter(doc, **kwds)
-        self._tdws = set([self.doc.tdw])
+        self._tdws = {self.doc.tdw}
         rootstack = self.doc.model.layer_stack
         rootstack.current_path_updated += self._update_ui
         rootstack.layer_properties_changed += self._update_ui
@@ -131,10 +131,7 @@ class FloodFillMode (gui.mode.ScrollableModeMixin,
 
         # Determine which layer will receive the fill based on the options
         opts = self.get_options_widget()
-        target_layer = model.layer_stack.current
-        if opts.make_new_layer:
-            target_layer = None
-
+        target_layer = None if opts.make_new_layer else model.layer_stack.current
         # Determine whether the target layer can be filled
         permitted = True
         if target_layer is not None:

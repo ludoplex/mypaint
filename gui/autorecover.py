@@ -48,7 +48,7 @@ class Presenter (object):
         """Initialize for the main app and its working doc."""
         super(Presenter, self).__init__(**kwargs)
         self._app = weakref.proxy(app)
-        builder_xml = os.path.splitext(__file__)[0] + ".glade"
+        builder_xml = f"{os.path.splitext(__file__)[0]}.glade"
         builder = Gtk.Builder()
         builder.set_translation_domain("mypaint")
         builder.add_from_file(builder_xml)
@@ -195,9 +195,7 @@ class Presenter (object):
 
     def _update_buttons(self):
         autosave = self._get_selected_autosave()
-        sensitive = False
-        if autosave is not None:
-            sensitive = not autosave.cache_in_use
+        sensitive = not autosave.cache_in_use if autosave is not None else False
         self._recover_button.set_sensitive(sensitive)
         self._delete_button.set_sensitive(sensitive)
 

@@ -51,8 +51,7 @@ class _PageToolAdapter (Gtk.VBox, ColorAdjuster):
         page = self.PAGE_CLASS()
         page_widget = page.get_page_widget()
         self.pack_start(page_widget, True, True, 0)
-        self._adjusters = []
-        self._adjusters.append(page)
+        self._adjusters = [page]
         # Properties button
         properties_desc = self.PAGE_CLASS.get_properties_description()
         if properties_desc is not None:

@@ -67,8 +67,7 @@ class ComponentSlidersAdjusterPage (CombinedAdjusterPage, IconRenderable):
                 0,
             ),
         ]
-        row = 0
-        for row_def in row_defs:
+        for row, row_def in enumerate(row_defs):
             label_text, adj_class, margin_top = row_def
             label = Gtk.Label()
             label.set_text(label_text)
@@ -90,7 +89,6 @@ class ComponentSlidersAdjusterPage (CombinedAdjusterPage, IconRenderable):
             self._sliders.append(adj)
             grid.attach(label, 0, row, 1, 1)
             grid.attach(adj, 1, row, 1, 1)
-            row += 1
         align = Gtk.Alignment(
             xalign=0.5, yalign=0.5,
             xscale=1.0, yscale=0.0,
@@ -99,18 +97,18 @@ class ComponentSlidersAdjusterPage (CombinedAdjusterPage, IconRenderable):
         self._page_widget = align  #: Page's layout widget
 
     @classmethod
-    def get_page_icon_name(self):
+    def get_page_icon_name(cls):
         return 'mypaint-tool-component-sliders'
 
     @classmethod
-    def get_page_title(self):
+    def get_page_title(cls):
         return C_(
             "color sliders panel: tab title (in tooltip)",
             "Component Sliders"
         )
 
     @classmethod
-    def get_page_description(self):
+    def get_page_description(cls):
         return C_(
             "color sliders panel: tab description (in tooltip)",
             "Adjust individual components of the color.",
@@ -142,7 +140,6 @@ class ComponentSlidersAdjusterPage (CombinedAdjusterPage, IconRenderable):
                 adj.BORDER_WIDTH = 1
                 adj.render_background_cb(cr, wd=16, ht=5)
                 cr.translate(0, 5)
-            cr.restore()
         else:
             cr.save()
             bar_ht = int(size // 3)
@@ -152,7 +149,7 @@ class ComponentSlidersAdjusterPage (CombinedAdjusterPage, IconRenderable):
                 adj.BORDER_WIDTH = max(2, int(size // 16))
                 adj.render_background_cb(cr, wd=size, ht=bar_ht)
                 cr.translate(0, bar_ht)
-            cr.restore()
+        cr.restore()
         for adj in adjs:
             adj.set_color_manager(None)
 

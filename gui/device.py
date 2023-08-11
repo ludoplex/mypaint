@@ -213,10 +213,7 @@ class Monitor (object):
         """
         super(Monitor, self).__init__()
         self._app = app
-        if app is not None:
-            self._prefs = app.preferences
-        else:
-            self._prefs = {}
+        self._prefs = app.preferences if app is not None else {}
         if _PREFS_ROOT not in self._prefs:
             self._prefs[_PREFS_ROOT] = {}
 
@@ -310,8 +307,7 @@ class Monitor (object):
         :returns: ultimately a sequence of (Gdk.Device, Settings) pairs
 
         """
-        for device, settings in self._device_settings.items():
-            yield (device, settings)
+        yield from self._device_settings.items()
 
     ## Current device
 
@@ -641,9 +637,7 @@ def device_is_eraser(device):
         return False
     if device.get_source() == Gdk.InputSource.ERASER:
         return True
-    if re.search(r'\<eraser\>', device.get_name(), re.I):
-        return True
-    return False
+    return bool(re.search(r'\<eraser\>', device.get_name(), re.I))
 
 
 ## Testing

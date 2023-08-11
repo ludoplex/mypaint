@@ -206,8 +206,7 @@ class FreehandMode (gui.mode.BrushworkModeMixin,
             """Fetches zero or more events to process from the queue"""
             if len(self.motion_queue) > 0:
                 event = self.motion_queue.popleft()
-                for ievent in self.interp.feed(*event):
-                    yield ievent
+                yield from self.interp.feed(*event)
 
     def _reset_drawing_state(self):
         """Resets all per-TDW drawing state"""
@@ -393,12 +392,7 @@ class FreehandMode (gui.mode.BrushworkModeMixin,
         # Ensure each event has a defined pressure
         if pressure is not None:
             # Using the reported pressure. Apply some sanity checks
-            if not np.isfinite(pressure):
-                # infinity/nan: use button state (instead of clamping in
-                # brush.hpp) https://gna.org/bugs/?14709
-                pressure = None
-            else:
-                pressure = clamp(pressure, 0.0, 1.0)
+            pressure = None if not np.isfinite(pressure) else clamp(pressure, 0.0, 1.0)
             drawstate.last_event_had_pressure = True
 
         # Fake the pressure if we have none, or if infinity was reported
@@ -782,7 +776,7 @@ class PressureAndTiltInterpolator (object):
             can_interp = dt > 0
         if can_interp:
             for event in self._np:
-                t, x, y = event[0:3]
+                t, x, y = event[:3]
                 p, xt, yt, vz, vr, br = spline_4p(
                     (t - t0) / dt,
                     np.array(pt0p[3:]), np.array(pt0[3:]),
@@ -794,8 +788,7 @@ class PressureAndTiltInterpolator (object):
 
     def _interpolate_and_step(self):
         """Internal: interpolate & step forward or clear"""
-        for ievent in self._interpolate_p0_p1():
-            yield ievent
+        yield from self._interpolate_p0_p1()
         if ((self._pt1_next[3] > 0.0) and
                 (self._pt1 is not None) and
                 (self._pt1[3] <= 0.0)):
@@ -813,8 +806,7 @@ class PressureAndTiltInterpolator (object):
             # Tail off neatly by doubling the zero-pressure event
             self._step()
             self._pt1_next = self._pt1
-            for ievent in self._interpolate_p0_p1():
-                yield ievent
+            yield from self._interpolate_p0_p1()
             # Then clear history
             self._clear()
         else:
@@ -850,8 +842,7 @@ class PressureAndTiltInterpolator (object):
         else:
             self._pt1_next = (time, x, y, pressure, xtilt, ytilt, viewzoom,
                               viewrotation, barrel_rotation)
-            for t, x, y, p, xt, yt, vz, vr, br in self._interpolate_and_step():
-                yield (t, x, y, p, xt, yt, vz, vr, br)
+            yield from self._interpolate_and_step()
 
 
 ## Module tests

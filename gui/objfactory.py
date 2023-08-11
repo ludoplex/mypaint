@@ -141,14 +141,12 @@ class ObjFactory (object):
             gtype = GObject.type_from_name(gtype_name)
         except RuntimeError:
             raise ConstructError(
-                "Cannot construct a '%s': module not imported?"
-                % gtype_name
+                f"Cannot construct a '{gtype_name}': module not imported?"
             )
         if self._required_type:
             if not gtype.is_a(self._required_type):
                 raise ConstructError(
-                    "%s is not a subclass of %s"
-                    % (gtype_name, self._required_type.__gtype__.name)
+                    f"{gtype_name} is not a subclass of {self._required_type.__gtype__.name}"
                 )
         try:
             product = gtype.pytype(*params)

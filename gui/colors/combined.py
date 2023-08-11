@@ -29,13 +29,13 @@ class CombinedAdjusterPage (ColorAdjuster):
     """
 
     @classmethod
-    def get_page_icon_name(class_):
+    def get_page_icon_name(cls):
         """Returns the page's icon name.
         """
         raise NotImplementedError
 
     @classmethod
-    def get_page_title(class_):
+    def get_page_title(cls):
         """Returns the title for the page.
 
         Word as "this page/tab contains a [...]", in titlecase.
@@ -43,7 +43,7 @@ class CombinedAdjusterPage (ColorAdjuster):
         raise NotImplementedError
 
     @classmethod
-    def get_page_description(class_):
+    def get_page_description(cls):
         """Returns the descriptive text for the page.
 
         Word as "this page/tab lets you [...]", in titlecase.
@@ -51,7 +51,7 @@ class CombinedAdjusterPage (ColorAdjuster):
         raise NotImplementedError
 
     @classmethod
-    def get_properties_description(class_):
+    def get_properties_description(cls):
         """Override & return a string if `show_properties()` is implemented.
 
         The returned string should explain what the properties button does. The

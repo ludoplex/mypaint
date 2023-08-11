@@ -19,11 +19,7 @@ from lib.pycompat import xrange
 def clamp(v, bottom, top):
     """Returns `v`, clamped to within a particular range.
     """
-    if v > top:
-        return top
-    if v < bottom:
-        return bottom
-    return v
+    return top if v > top else max(v, bottom)
 
 
 def add_distance_fade_stops(gr, rgb, nstops=3, gamma=2, alpha=1.0):

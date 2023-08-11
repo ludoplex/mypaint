@@ -81,11 +81,10 @@ class FadingOverlay (Overlay):
 
         if self.__area:
             self.tdw.queue_draw_area(*self.__area)
-        if self.alpha <= 0.0:
-            self.__anim_srcid = None
-            return False
-        else:
+        if self.alpha > 0.0:
             return True
+        self.__anim_srcid = None
+        return False
 
     def __restart_anim_if_needed(self):
         """Restart if not currently running, without changing the alpha.

@@ -79,8 +79,7 @@ def get_brush_cursor(radius, style, prefs={}):
     d = int(radius*2)
     min_size = max(prefs.get("cursor.freehand.min_size", 4),
                    BRUSH_CURSOR_MIN_SIZE)
-    if d < min_size:
-        d = min_size
+    d = max(d, min_size)
     if d+1 > max_cursor_size:
         d = max_cursor_size-1
     cursor_info = (d, style, min_size)
@@ -162,32 +161,24 @@ def draw_brush_cursor(cr, d, style=BRUSH_CURSOR_STYLE_NORMAL, prefs={}):
         # divide into eighths, alternating on and off
         k = math.pi / 4
         k2 = k/2
-        arcs.append((k2, k2+k))
-        arcs.append((k2+2*k, k2+3*k))
-        arcs.append((k2+4*k, k2+5*k))
-        arcs.append((k2+6*k, k2+7*k))
+        arcs.extend(((k2, k2+k), (k2+2*k, k2+3*k), (k2+4*k, k2+5*k), (k2+6*k, k2+7*k)))
     elif style == BRUSH_CURSOR_STYLE_LOCK_ALPHA:
         # same thing, but the two side voids are filled
         k = math.pi/4
         k2 = k/2
-        arcs.append((k2+6*k, k2+k))
-        arcs.append((k2+2*k, k2+5*k))
+        arcs.extend(((k2+6*k, k2+k), (k2+2*k, k2+5*k)))
     elif style == BRUSH_CURSOR_STYLE_COLORIZE:
         # same as lock-alpha, but with the voids turned through 90 degrees
         k = math.pi/4
         k2 = k/2
-        arcs.append((k2, k2+3*k))
-        arcs.append((k2+4*k, k2+7*k))
+        arcs.extend(((k2, k2+3*k), (k2+4*k, k2+7*k)))
     else:
         # Regular drawing mode
         arcs.append((0, 2*math.pi))
 
     # Pick centre to ensure pixel alignedness for the outer edge of the
     # black outline.
-    if d % 2 == 0:
-        r0 = int(d // 2)
-    else:
-        r0 = int(d // 2) + 0.5
+    r0 = int(d // 2) if d % 2 == 0 else int(d // 2) + 0.5
     cx = cy = r0
 
     # Outer "bg" line.
@@ -279,9 +270,7 @@ class CustomCursorMaker (object):
             )
 
         display = self.app.drawWindow.get_display()
-        cursor = Gdk.Cursor.new_from_pixbuf(display, cursor_pixbuf,
-                                            hot_x, hot_y)
-        return cursor
+        return Gdk.Cursor.new_from_pixbuf(display, cursor_pixbuf, hot_x, hot_y)
 
     def get_freehand_cursor(self, cursor_name=Name.CROSSHAIR_OPEN_PRECISE):
         """Returns a cursor for the current app.brush. Cached.
@@ -338,37 +327,35 @@ class CustomCursorMaker (object):
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        if icon_name is not None:
-            if "symbolic" in icon_name:
-                icon_pixbuf = gui.drawutils.load_symbolic_icon(
-                    icon_name, 18,
-                    fg=(1, 1, 1, 1),
-                    outline=(0, 0, 0, 1),
-                )
-            else:
-                # Look up icon via the user's current theme
-                icon_theme = Gtk.IconTheme.get_default()
-                size_range = [Gtk.IconSize.SMALL_TOOLBAR, Gtk.IconSize.MENU]
-                for icon_size in size_range:
-                    valid, width, height = Gtk.icon_size_lookup(icon_size)
-                    if not valid:
-                        continue
-                    size = min(width, height)
-                    if size > 24:
-                        continue
-                    flags = 0
-                    icon_pixbuf = icon_theme.load_icon(icon_name, size, flags)
-                    if icon_pixbuf:
-                        break
-                if not icon_pixbuf:
-                    logger.warning(
-                        "Can't find icon %r for cursor. Search path: %r",
-                        icon_name,
-                        icon_theme.get_search_path(),
-                    )
-        else:
+        if icon_name is None:
             icon_pixbuf = None
 
+        elif "symbolic" in icon_name:
+            icon_pixbuf = gui.drawutils.load_symbolic_icon(
+                icon_name, 18,
+                fg=(1, 1, 1, 1),
+                outline=(0, 0, 0, 1),
+            )
+        else:
+            # Look up icon via the user's current theme
+            icon_theme = Gtk.IconTheme.get_default()
+            size_range = [Gtk.IconSize.SMALL_TOOLBAR, Gtk.IconSize.MENU]
+            for icon_size in size_range:
+                valid, width, height = Gtk.icon_size_lookup(icon_size)
+                if not valid:
+                    continue
+                size = min(width, height)
+                if size > 24:
+                    continue
+                icon_pixbuf = icon_theme.load_icon(icon_name, size, 0)
+                if icon_pixbuf:
+                    break
+            if not icon_pixbuf:
+                logger.warning(
+                    "Can't find icon %r for cursor. Search path: %r",
+                    icon_name,
+                    icon_theme.get_search_path(),
+                )
         # Build cursor
         cursor = self._get_overlay_cursor(icon_pixbuf, cursor_name)
 
@@ -395,11 +382,9 @@ def get_move_cursor_name_for_angle(theta):
         (15, Name.MOVE_NORTHEAST_OR_SOUTHWEST),
         (17, Name.MOVE_WEST_OR_EAST),
     ]
-    cursor_str = None
-    for i, s in cursor_strs:
-        if theta < i*(2.0/16)*math.pi:
-            cursor_str = s
-            break
+    cursor_str = next(
+        (s for i, s in cursor_strs if theta < i * (2.0 / 16) * math.pi), None
+    )
     assert cursor_str is not None
     return cursor_str
 
@@ -445,7 +430,7 @@ if __name__ == '__main__':
     def _enter_cb(widget, event):
         global style, max_size
         r = randint(3, max_size // 2)
-        print("DEBUG: radius=%s, style=%s" % (r, style))
+        print(f"DEBUG: radius={r}, style={style}")
         cursor = get_brush_cursor(r, style)
         widget.get_window().set_cursor(cursor)
         style += 1

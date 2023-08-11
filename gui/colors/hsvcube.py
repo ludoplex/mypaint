@@ -78,15 +78,15 @@ class HSVCubePage (CombinedAdjusterPage):
         self._update_tooltips()
 
     @classmethod
-    def get_page_icon_name(self):
+    def get_page_icon_name(cls):
         return 'mypaint-tool-hsvcube'
 
     @classmethod
-    def get_page_title(self):
+    def get_page_title(cls):
         return _('HSV Cube')
 
     @classmethod
-    def get_page_description(self):
+    def get_page_description(cls):
         return _("An HSV cube which can be rotated to show different "
                  "planar slices.")
 
@@ -135,8 +135,7 @@ class HSVCubeSlider (SliderColorAdjuster):
 
     def get_bar_amount_for_color(self, col):
         f0 = self.__cube._faces[0]
-        amt = getattr(col, f0)
-        return amt
+        return getattr(col, f0)
 
 
 class HSVCubeSlice (IconRenderableColorAdjusterWidget):
@@ -169,7 +168,7 @@ class HSVCubeSlice (IconRenderableColorAdjusterWidget):
         step = max(1, int(eff_wd // 128))
 
         rect_x, rect_y = int(b)+0.5, int(b)+0.5
-        rect_w, rect_h = int(eff_wd)-1, int(eff_ht)-1
+        rect_w, rect_h = eff_wd - 1, eff_ht - 1
 
         # Paint the central area offscreen
         cr.push_group()

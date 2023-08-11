@@ -83,15 +83,15 @@ class HSVAdjusterPage (CombinedAdjusterPage):
         self.__table = table
 
     @classmethod
-    def get_page_icon_name(self):
+    def get_page_icon_name(cls):
         return 'mypaint-tool-hsvwheel'
 
     @classmethod
-    def get_page_title(self):
+    def get_page_title(cls):
         return _('HSV Wheel')
 
     @classmethod
-    def get_page_description(self):
+    def get_page_description(cls):
         return _("Saturation and Value color changer.")
 
     def get_page_widget(self):

@@ -79,9 +79,7 @@ class OpenWithDialog (Gtk.Dialog):
         content_box.set_border_width(12)
         content_box.set_spacing(12)
 
-        msg_template = self.GENERIC_MSG
-        if specific_file:
-            msg_template = self.SPECIFIC_FILE_MSG
+        msg_template = self.SPECIFIC_FILE_MSG if specific_file else self.GENERIC_MSG
         msg_text = msg_template.format(
             content_type=content_type,
             type_name=Gio.content_type_get_description(content_type),
@@ -178,8 +176,7 @@ class OpenWithDialog (Gtk.Dialog):
 
     def _row_activated_cb(self, view, treepath, column):
         model = view.get_model()
-        treeiter = model.get_iter(treepath)
-        if treeiter:
+        if treeiter := model.get_iter(treepath):
             appinfo = model.get_value(treeiter, 0)
             self.selected_appinfo = appinfo
             self.response(Gtk.ResponseType.OK)

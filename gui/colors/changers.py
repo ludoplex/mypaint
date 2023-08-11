@@ -81,8 +81,7 @@ class _CColorChanger (gui.colors.adjbases.IconRenderableColorAdjusterWidget):
         y -= self._dy
         size = self._backend.get_size()
         if (0 <= x < size) and (0 <= y < size):
-            hsv = self._backend.pick_color_at(x, y)
-            if hsv:
+            if hsv := self._backend.pick_color_at(x, y):
                 return lib.color.HSVColor(*hsv)
         return None
 
@@ -143,12 +142,10 @@ if __name__ == '__main__':
         # Interactive test
         window = Gtk.Window()
         grid = Gtk.Grid()
-        r = 1
-        for w in widgets:
+        for r, w in enumerate(widgets, start=1):
             w.set_hexpand(True)
             w.set_vexpand(True)
             grid.attach(w, 0, r, 1, 1)
-            r += 1
         window.add(grid)
         window.set_title(os.path.basename(sys.argv[0]))
         window.connect("destroy", lambda *a: Gtk.main_quit())

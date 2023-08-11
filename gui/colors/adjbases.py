@@ -249,12 +249,7 @@ class ColorManager (GObject.GObject):
         color_history_updated method of the ColorManager itself.
 
         """
-        self._hist[:] = [
-            c for c in self._hist
-            if not (c == color or color == c)
-            # Direction of the comparison can matter now that color
-            # classes have overridden __eq__ methods.
-        ]
+        self._hist[:] = [c for c in self._hist if c != color != c]
         self._hist.append(color)
         self._trim_hist()
         key = PREFS_KEY_COLOR_HISTORY
@@ -425,9 +420,7 @@ class ColorAdjuster(object):
     ## Central shared prefs access (convenience methods)
 
     def get_prefs(self):
-        if self.color_manager is not None:
-            return self.color_manager.get_prefs()
-        return {}
+        return self.color_manager.get_prefs() if self.color_manager is not None else {}
 
     ## Update notification
 
@@ -619,13 +612,13 @@ class ColorAdjusterWidget (CachedBgDrawingArea, ColorAdjuster):
         if prop.name == 'color-manager':
             self.set_color_manager(value)
         else:
-            raise AttributeError('unknown property %s' % prop.name)
+            raise AttributeError(f'unknown property {prop.name}')
 
     def do_get_property(self, prop):
         if prop.name == 'color-manager':
             return self.get_color_manager()
         else:
-            raise AttributeError('unknown property %s' % prop.name)
+            raise AttributeError(f'unknown property {prop.name}')
 
     ## Color-at-position interface (for subclasses, primarily)
 
@@ -927,10 +920,7 @@ class PreviousCurrentColorAdjuster (ColorAdjusterWidget):
     def get_color_at_position(self, x, y):
         alloc = self.get_allocation()
         mgr = self.get_color_manager()
-        if x < alloc.width // 2:
-            color = mgr.get_color()
-        else:
-            color = mgr.get_previous_color()
+        color = mgr.get_color() if x < alloc.width // 2 else mgr.get_previous_color()
         return deepcopy(color)
 
     ## Update notifications
@@ -1167,8 +1157,7 @@ class HueSaturationWheelMixin(object):
         # Normalized radius
         r = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
         radius = self.get_radius(alloc=alloc)
-        if r > radius:
-            r = radius
+        r = min(r, radius)
         r /= radius
         r **= self.SAT_GAMMA
         # Normalized polar angle
@@ -1176,8 +1165,7 @@ class HueSaturationWheelMixin(object):
         while theta <= 0:
             theta += 1.0
         theta %= 1.0
-        mgr = self.get_color_manager()
-        if mgr:
+        if mgr := self.get_color_manager():
             theta = mgr.undistort_hue(theta)
         return self.color_at_normalized_polar_pos(r, theta)
 
@@ -1309,8 +1297,7 @@ class HueSaturationWheelMixin(object):
 
     def get_pos_for_color(self, col):
         nr, ntheta = self.get_normalized_polar_pos_for_color(col)
-        mgr = self.get_color_manager()
-        if mgr:
+        if mgr := self.get_color_manager():
             ntheta = mgr.distort_hue(ntheta)
         nr **= 1.0 / self.SAT_GAMMA
         alloc = self.get_allocation()

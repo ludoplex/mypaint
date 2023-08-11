@@ -129,12 +129,8 @@ class BrushEditorWindow (SubWindow):
                                  step_incr=0.01, page_incr=0.1)
             adj.connect("value-changed", self.input_adj_changed_cb, inp)
             self._input_y_adj[name] = adj
-            lower = -20.0
-            upper = +20.0
-            if inp.hard_min is not None:
-                lower = inp.hard_min
-            if inp.hard_max is not None:
-                upper = inp.hard_max
+            lower = inp.hard_min if inp.hard_min is not None else -20.0
+            upper = inp.hard_max if inp.hard_max is not None else +20.0
             adj = Gtk.Adjustment(value=inp.soft_min,
                                  lower=lower, upper=upper - 0.1,
                                  step_incr=0.01, page_incr=0.1)
@@ -157,15 +153,15 @@ class BrushEditorWindow (SubWindow):
         self._populate_settings_treestore()
         self._builder.connect_signals(self)
         for inp in brushsettings.inputs:
-            grid = self._builder.get_object("by%s_curve_grid" % inp.name)
+            grid = self._builder.get_object(f"by{inp.name}_curve_grid")
             GLib.idle_add(grid.hide)
-            curve = self._builder.get_object("by%s_curve" % inp.name)
+            curve = self._builder.get_object(f"by{inp.name}_curve")
 
             def _curve_changed_cb(curve, i=inp):
                 self._update_brush_from_input_widgets(i)
 
             curve.changed_cb = _curve_changed_cb
-            btn = self._builder.get_object("by%s_reset_button" % inp.name)
+            btn = self._builder.get_object(f"by{inp.name}_reset_button")
             btn.connect("clicked", self.input_adj_reset_button_clicked_cb, inp)
         # Certain actions must be coordinated via a real app instance
         if not self.app:
@@ -216,25 +212,25 @@ class BrushEditorWindow (SubWindow):
                 if tmpl_id == "by{name}_curve_grid":
                     widget.hide()
             group_start_row += group_step
-            label = self._builder.get_object("by%s_label" % i.name)
+            label = self._builder.get_object(f"by{i.name}_label")
             label.set_tooltip_text(i.tooltip)
-            btn = self._builder.get_object("by%s_expander_button" % i.name)
+            btn = self._builder.get_object(f"by{i.name}_expander_button")
             btn.__input = i
             # Hook up curve max and min adjustments
             cb = self._update_axis_label
             fmt = "%+.2f"
             # Y axis
-            scale = self._builder.get_object("by%s_scale" % i.name)
+            scale = self._builder.get_object(f"by{i.name}_scale")
             scale_adj = self._input_y_adj[i.name]
-            scale_lbl = self._builder.get_object("by%s_ymax_label" % i.name)
+            scale_lbl = self._builder.get_object(f"by{i.name}_ymax_label")
             scale_adj.connect("value-changed", cb, scale_lbl, fmt, False)
             cb(scale_adj, scale_lbl, fmt, False)
-            scale_lbl = self._builder.get_object("by%s_ymin_label" % i.name)
+            scale_lbl = self._builder.get_object(f"by{i.name}_ymin_label")
             scale_adj.connect("value-changed", cb, scale_lbl, fmt, True)
             cb(scale_adj, scale_lbl, fmt, True)
             scale.set_adjustment(scale_adj)
             # X axis: min
-            sbut = self._builder.get_object("by%s_xmin_scalebutton" % i.name)
+            sbut = self._builder.get_object(f"by{i.name}_xmin_scalebutton")
             sbut_lbl = self._builder.get_object("by%s_xmin_label" % i.name)
             sbut_adj = self._input_xmin_adj[i.name]
             sbut_adj.connect("value-changed", cb, sbut_lbl, fmt, False)
@@ -438,7 +434,7 @@ class BrushEditorWindow (SubWindow):
             groups.pop(0)
         # Groups to open by default
         open_paths = []
-        open_ids = set(["experimental", "basic"])
+        open_ids = {"experimental", "basic"}
         # Add groups to the treestore
         for group_num, group in enumerate(groups):
             group_id = group["id"]
@@ -447,7 +443,7 @@ class BrushEditorWindow (SubWindow):
             group_iter = store.append(root_iter, row_data)
             group_path = store.get_path(group_iter)
             self._group_treepath[group_id] = group_path
-            for i, cname in enumerate(group['settings']):
+            for cname in group['settings']:
                 self._setting_group[cname] = group_id
                 s = brushsettings.settings_dict[cname]
                 row_data = [cname, s.name, True, Pango.Weight.NORMAL]
@@ -611,16 +607,14 @@ class BrushEditorWindow (SubWindow):
 
     def _get_brushpoints_from_curvewidget(self, inp):
         scale_y_adj = self._input_y_adj[inp.name]
-        curve_widget = self._builder.get_object("by%s_curve" % inp.name)
+        curve_widget = self._builder.get_object(f"by{inp.name}_curve")
         scale_y = scale_y_adj.get_value()
         if not scale_y:
             return []
         brush_points = [self._point_widget2real(p, inp)
                         for p in curve_widget.points]
         nonzero = [True for x, y in brush_points if y != 0]
-        if not nonzero:
-            return []
-        return brush_points
+        return [] if not nonzero else brush_points
 
     def _point_widget2real(self, p, inp):
         x, y = p
@@ -645,10 +639,7 @@ class BrushEditorWindow (SubWindow):
         xmin = xmin_adj.get_value()
         scale_x = xmax - xmin
         assert scale_x
-        if scale_y == 0:
-            y = None
-        else:
-            y = -(y / scale_y / 2.0) + 0.5
+        y = None if scale_y == 0 else -(y / scale_y / 2.0) + 0.5
         x = (x - xmin) / scale_x
         return (x, y)
 
@@ -657,7 +648,7 @@ class BrushEditorWindow (SubWindow):
         return self._point_real2widget((inp.normal, 0.0), inp)[0]
 
     def _update_graypoint(self, inp):
-        curve_widget = self._builder.get_object("by%s_curve" % inp.name)
+        curve_widget = self._builder.get_object(f"by{inp.name}_curve")
         curve_widget.graypoint = (self._get_x_normal(inp), 0.5)
         curve_widget.queue_draw()
 
@@ -682,9 +673,7 @@ class BrushEditorWindow (SubWindow):
 
     def _update_brush_header(self, modified=False):
         """Updates the header strip with the current brush's icon and name"""
-        mb = None
-        if self.app:
-            mb = self.app.brushmanager.selected_brush
+        mb = self.app.brushmanager.selected_brush if self.app else None
         # Brush name label
         if mb:
             if mb.name:
@@ -709,10 +698,7 @@ class BrushEditorWindow (SubWindow):
         image = self._builder.get_object("brush_preview_image")
         w = image.get_allocated_width()
         h = image.get_allocated_height()
-        if mb:
-            pixbuf = mb.preview
-        else:
-            pixbuf = None
+        pixbuf = mb.preview if mb else None
         if pixbuf:
             pixbuf = pixbuf.scale_simple(w, h, GdkPixbuf.InterpType.BILINEAR)
         if not pixbuf:
@@ -801,8 +787,8 @@ class BrushEditorWindow (SubWindow):
         scale_y_adj = self._input_y_adj[inp.name]
         xmax_adj = self._input_xmax_adj[inp.name]
         xmin_adj = self._input_xmin_adj[inp.name]
-        curve_widget = self._builder.get_object("by%s_curve" % inp.name)
-        scale_y_widget = self._builder.get_object("by%s_scale" % inp.name)
+        curve_widget = self._builder.get_object(f"by{inp.name}_curve")
+        scale_y_widget = self._builder.get_object(f"by{inp.name}_scale")
         assert scale_y_widget.get_adjustment() is scale_y_adj
 
         brush_points = self._brush.get_points(self._setting.cname, inp.name)
@@ -814,11 +800,11 @@ class BrushEditorWindow (SubWindow):
 
         xmin, xmax = brush_points[0][0], brush_points[-1][0]
         assert xmax > xmin
-        assert max([x for x, y in brush_points]) == xmax
-        assert min([x for x, y in brush_points]) == xmin
+        assert max(x for x, y in brush_points) == xmax
+        assert min(x for x, y in brush_points) == xmin
 
-        y_min = min([y for x, y in brush_points])
-        y_max = max([y for x, y in brush_points])
+        y_min = min(y for x, y in brush_points)
+        y_max = max(y for x, y in brush_points)
         scale_y = max(abs(y_min), abs(y_max))
 
         # choose between scale_y and -scale_y (arbitrary)
@@ -891,8 +877,7 @@ class BrushEditorWindow (SubWindow):
     def _settings_treeview_selectfunc(self, seln, model, path, is_seld, data):
         """Determines whether settings listview rows can be selected"""
         i = model.get_iter(path)
-        is_leaf = model.get_value(i, self._LISTVIEW_IS_SELECTABLE_COLUMN)
-        return is_leaf
+        return model.get_value(i, self._LISTVIEW_IS_SELECTABLE_COLUMN)
 
     def settings_treeview_row_activated_cb(self, view, path, column):
         """Double clicking opens expander rows"""
@@ -1065,15 +1050,15 @@ class BrushEditorWindow (SubWindow):
 
     def byname_expander_button_clicked_cb(self, button):
         inp = button.__input
-        grid = self._builder.get_object("by%s_curve_grid" % inp.name)
+        grid = self._builder.get_object(f"by{inp.name}_curve_grid")
         self._set_input_expanded(inp, not grid.get_visible())
 
     # UI utility functions:
 
     def _set_input_expanded(self, inp, expand, scroll=True):
         getobj = self._builder.get_object
-        arrow = getobj("by%s_expander_arrow" % (inp.name,))
-        grid = getobj("by%s_curve_grid" % (inp.name,))
+        arrow = getobj(f"by{inp.name}_expander_arrow")
+        grid = getobj(f"by{inp.name}_curve_grid")
         if expand:
             arrow.set_property("arrow-type", Gtk.ArrowType.DOWN)
             grid.show_all()

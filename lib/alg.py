@@ -53,7 +53,7 @@ def convex_hull(points):
     # Build the hull as a stack, continually removing the middle element
     # of the last three points while those three points make a left turn
     # rather than a right turn.
-    hull = points[0:2]
+    hull = points[:2]
 
     for p in points[2:]:
         hull.append(p)
@@ -108,13 +108,13 @@ def poly_centroid(poly):
         area /= 2.0
         cx /= 6.0*area
         cy /= 6.0*area
-        return cx, cy
     else:  # Line
         xs = [x for x, y in poly]
         ys = [y for x, y in poly]
         cx = (min(xs) + max(xs)) / 2.0
         cy = (min(ys) + max(ys)) / 2.0
-        return cx, cy
+
+    return cx, cy
 
 
 def point_in_convex_poly(point, poly):
@@ -147,8 +147,6 @@ def point_in_convex_poly(point, poly):
             if seen_right:
                 return False
             seen_left = True
-        else:  # point is on the same line as the segment
-            pass
     return True
 
 
@@ -240,19 +238,18 @@ def intersection_of_segments(p1, p2, p3, p4):
     # Zero(ish) in the denominator indicates either coincident lines
     # or parallel (and therefore nonitersecting) lines.
     if abs(denom) < epsilon:
-        if abs(numera) < epsilon and abs(numerb) < epsilon:  # coincident
-            x = (x1 + x2) / 2
-            y = (y1 + y2) / 2
-            return (x, y)
-        else:
+        if abs(numera) >= epsilon or abs(numerb) >= epsilon:
             return None   # parallel
 
+        x = (x1 + x2) / 2
+        y = (y1 + y2) / 2
+        return (x, y)
     # The intersection is defined in terms of the parameters ua and ub.
     # If these are outside their range, the intersection point lies
     # along the segments' lines, but not within the segment.
     ua = numera / denom
     ub = numerb / denom
-    if not ((0 <= ua <= 1) and (0 <= ub <= 1)):
+    if not 0 <= ua <= 1 or not 0 <= ub <= 1:
         return None
 
     # Within segments, so just expand to an actual point.

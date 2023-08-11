@@ -72,8 +72,8 @@ def _get_case_insensitive_glob(string):
 
     """
     ext = string.split('.')[1]
-    globlist = ["[%s%s]" % (c.lower(), c.upper()) for c in ext]
-    return '*.%s' % ''.join(globlist)
+    globlist = [f"[{c.lower()}{c.upper()}]" for c in ext]
+    return f"*.{''.join(globlist)}"
 
 
 def _add_filters_to_dialog(filters, dialog):
@@ -208,12 +208,12 @@ class _IOProgressUI:
 
         """
         # TRANSLATORS: formatting for the {files_summary} used below.
-        if isinstance(f, tuple) or isinstance(f, list):
+        if isinstance(f, (tuple, list)):
             nfiles = len(f)
             return ngettext(u"{n} file", u"{n} files", nfiles).format(
                 n=nfiles,
             )
-        elif isinstance(f, bytes) or isinstance(f, unicode):
+        elif isinstance(f, (bytes, unicode)):
             if isinstance(f, bytes):
                 f = f.decode("utf-8")
             return C_(
@@ -261,7 +261,7 @@ class _IOProgressUI:
         msg = self._OP_FAIL_DIALOG_TITLES[op_type]
         self._fail_dialog_title = msg
 
-        self._is_write = (op_type in ["save", "export"])
+        self._is_write = op_type in {"save", "export"}
 
         cid = self._app.statusbar.get_context_id("filehandling-message")
         self._statusbar_context_id = cid
@@ -612,8 +612,7 @@ class FileHandler (object):
         """When the user changes the selected format to save as in the dialog,
         change the extension of the filename (if existing) immediately."""
         dialog = self.save_dialog
-        filename = dialog.get_filename()
-        if filename:
+        if filename := dialog.get_filename():
             filename = filename_to_unicode(filename)
             filename, ext = os.path.splitext(filename)
             if ext:
@@ -719,10 +718,7 @@ class FileHandler (object):
                 styles.add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
 
         # Explanatory message.
-        if self.filename:
-            file_basename = os.path.basename(self.filename)
-        else:
-            file_basename = None
+        file_basename = os.path.basename(self.filename) if self.filename else None
         warning_msg_tmpl = C_(
             "Destructive action confirm dialog: warning message",
             u"You risk losing {abbreviated_time} of unsaved painting. "
@@ -828,8 +824,7 @@ class FileHandler (object):
             search_layers.append(layers.current)
         search_layers.extend(layers.deepiter())
         for layer in search_layers:
-            si = layer.get_last_stroke_info()
-            if si:
+            if si := layer.get_last_stroke_info():
                 self.app.restore_brush_from_stroke_info(si)
                 break
 
@@ -852,7 +847,7 @@ class FileHandler (object):
         prefs = self.app.preferences
         display_colorspace_setting = prefs["display.colorspace"]
 
-        op_type = is_import and "import" or "load"
+        op_type = "import" if is_import else "load"
 
         files_summary = _IOProgressUI.format_files_summary(arg)
         ioui = _IOProgressUI(self.app, op_type, files_summary)
@@ -928,12 +923,11 @@ class FileHandler (object):
 
     @with_wait_cursor
     def save_scratchpad(self, filename, export=False, **options):
-        save_needed = (
+        if save_needed := (
             self.app.scratchpad_doc.model.unsaved_painting_time
             or export
             or not os.path.exists(filename)
-        )
-        if save_needed:
+        ):
             self._save_doc_to_file(
                 filename,
                 self.app.scratchpad_doc,
@@ -944,7 +938,7 @@ class FileHandler (object):
         if not export:
             self.app.scratchpad_filename = os.path.abspath(filename)
             self.app.preferences["scratchpad.last_opened_scratchpad"] \
-                = self.app.scratchpad_filename
+                    = self.app.scratchpad_filename
 
     def _save_doc_to_file(self, filename, doc, export=False,
                           use_statusbar=True,
@@ -967,7 +961,7 @@ class FileHandler (object):
         options['save_srgb_chunks'] = (display_colorspace_setting == "srgb")
 
         files_summary = _IOProgressUI.format_files_summary(filename)
-        op_type = export and "export" or "save"
+        op_type = "export" if export else "save"
         ioui = _IOProgressUI(self.app, op_type, files_summary,
                              use_statusbar=use_statusbar)
 
@@ -976,11 +970,9 @@ class FileHandler (object):
         return thumbnail_pixbuf
 
     def update_preview_cb(self, file_chooser, preview):
-        filename = file_chooser.get_preview_filename()
-        if filename:
+        if filename := file_chooser.get_preview_filename():
             filename = filename_to_unicode(filename)
-            pixbuf = helpers.freedesktop_thumbnail(filename)
-            if pixbuf:
+            if pixbuf := helpers.freedesktop_thumbnail(filename):
                 # if pixbuf is smaller than 256px in width, copy it onto
                 # a transparent 256x256 pixbuf
                 pixbuf = helpers.pixbuf_thumbnail(pixbuf, 256, 256, True)
@@ -1276,8 +1268,7 @@ class FileHandler (object):
                     self.save_scratchpad(filename)
                 return filename
 
-            found_nums = re.findall(re.escape(prefix) + '([0-9]+)', filename)
-            if found_nums:
+            if found_nums := re.findall(f'{re.escape(prefix)}([0-9]+)', filename):
                 number = found_nums[0]
 
         if number:
@@ -1295,7 +1286,7 @@ class FileHandler (object):
         else:
             # we don't have a scrap filename yet, find the next number
             maximum = 0
-            for filename in glob(prefix + '[0-9][0-9][0-9]*'):
+            for filename in glob(f'{prefix}[0-9][0-9][0-9]*'):
                 filename = filename[len(prefix):]
                 res = re.findall(r'[0-9]*', filename)
                 if not res:
@@ -1361,10 +1352,10 @@ class FileHandler (object):
     def _list_prefixed_dir(self, prefix):
         filenames = []
         for ext in ['png', 'ora', 'jpg', 'jpeg']:
-            filenames += glob(prefix + '[0-9]*.' + ext)
-            filenames += glob(prefix + '[0-9]*.' + ext.upper())
+            filenames += glob(f'{prefix}[0-9]*.{ext}')
+            filenames += glob(f'{prefix}[0-9]*.{ext.upper()}')
             # For the special linked scratchpads
-            filenames += glob(prefix + '_md5[0-9a-f]*.' + ext)
+            filenames += glob(f'{prefix}_md5[0-9a-f]*.{ext}')
         filenames.sort()
         return filenames
 
@@ -1380,9 +1371,8 @@ class FileHandler (object):
         """return scraps grouped by their major number"""
         def scrap_id(filename):
             s = os.path.basename(filename)
-            if s.startswith("_md5"):
-                return s
-            return re.findall('([0-9]+)', s)[0]
+            return s if s.startswith("_md5") else re.findall('([0-9]+)', s)[0]
+
         groups = []
         while filenames:
             group = []
@@ -1396,19 +1386,15 @@ class FileHandler (object):
         """Callback for RecentAction"""
         uri = action.get_current_uri()
         fn, _h = lib.glib.filename_from_uri(uri)
-        ok_to_open = self.app.filehandler.confirm_destructive_action(
-            title = C_(
-                u'File→Open Recent→* confirm dialog: title',
-                u"Open File?"
+        if ok_to_open := self.app.filehandler.confirm_destructive_action(
+            title=C_(u'File→Open Recent→* confirm dialog: title', u"Open File?"),
+            confirm=C_(
+                u'File→Open Recent→* confirm dialog: continue button', u"_Open"
             ),
-            confirm = C_(
-                u'File→Open Recent→* confirm dialog: continue button',
-                u"_Open"
-            ),
-        )
-        if not ok_to_open:
+        ):
+            self.open_file(fn)
+        else:
             return
-        self.open_file(fn)
 
     def open_last_cb(self, action):
         """Callback to open the last file"""
@@ -1481,19 +1467,15 @@ class FileHandler (object):
                 u"Cannot revert: canvas has not been saved to a file yet.",
             ))
             return
-        ok_to_reload = self.app.filehandler.confirm_destructive_action(
-            title = C_(
-                u'File→Revert confirm dialog: '
-                u'title',
+        if ok_to_reload := self.app.filehandler.confirm_destructive_action(
+            title=C_(
+                u'File→Revert confirm dialog: ' u'title',
                 u"Revert Changes?",
             ),
-            confirm = C_(
-                u'File→Revert confirm dialog: '
-                u'continue button',
-                u"_Revert"
+            confirm=C_(
+                u'File→Revert confirm dialog: ' u'continue button', u"_Revert"
             ),
-        )
-        if ok_to_reload:
+        ):
             self.open_file(self.filename)
 
     def delete_scratchpads(self, filenames):
@@ -1540,6 +1522,4 @@ class FileHandler (object):
         file_path, _host = lib.glib.filename_from_uri(file_uri)
         if not os.path.exists(file_path):
             return False
-        if not self._file_extension_regex.search(file_path):
-            return False
-        return True
+        return bool(self._file_extension_regex.search(file_path))

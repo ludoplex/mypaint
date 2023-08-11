@@ -155,7 +155,7 @@ for i, info_dict in enumerate(_mypaintlib.get_libmypaint_brush_settings()):
     settings.append(setting)
     settings_dict[setting.cname] = setting
 
-_settings_hidden = set(["color_h", "color_s", "color_v"])
+_settings_hidden = {"color_h", "color_s", "color_v"}
 for s in settings:
     if s.cname in _settings_hidden:
         continue

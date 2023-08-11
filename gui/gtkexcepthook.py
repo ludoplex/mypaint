@@ -66,9 +66,8 @@ def lookup(name, frame, lcls):
         if type(builtins) is dict:
             if name in builtins:
                 return 'builtin', builtins[name]
-        else:
-            if hasattr(builtins, name):
-                return 'builtin', getattr(builtins, name)
+        elif hasattr(builtins, name):
+            return 'builtin', getattr(builtins, name)
     return None, []
 
 
@@ -102,6 +101,7 @@ def analyse(exctyp, value, tb):
                 return linecache.getline(fname, lno[0])
             finally:
                 lno[0] += 1
+
         all, prev, name, scope = {}, None, '', None
         for ttype, tstr, stup, etup, line in tokenize.generate_tokens(readline):
             if ttype == tokenize.NAME and tstr not in keyword.kwlist:
@@ -130,7 +130,13 @@ def analyse(exctyp, value, tb):
                     break
 
         try:
-            details = inspect.formatargvalues(args, varargs, varkw, lcls, formatvalue=lambda v: '=' + pydoc.text.repr(v))
+            details = inspect.formatargvalues(
+                args,
+                varargs,
+                varkw,
+                lcls,
+                formatvalue=lambda v: f'={pydoc.text.repr(v)}',
+            )
         except:
             # seen that one on Windows (actual exception was KeyError: self)
             details = '(no details)'
@@ -141,7 +147,7 @@ def analyse(exctyp, value, tb):
         if len(all):
             trace.write('  variables: %s\n' % str(all))
 
-    trace.write('%s: %s' % (exctyp.__name__, value))
+    trace.write(f'{exctyp.__name__}: {value}')
     return trace
 
 
@@ -242,24 +248,17 @@ def _dialog_response_cb(dialog, resp, trace, exctyp, value):
     global exception_dialog_active
 
     if resp == RESPONSE_QUIT and Gtk.main_level() > 0:
-        if not quit_confirmation_func:
+        if (
+            quit_confirmation_func
+            and quit_confirmation_func()
+            or not quit_confirmation_func
+        ):
             sys.exit(1)  # Exit code is important for IDEs
         else:
-            if quit_confirmation_func():
-                sys.exit(1)  # Exit code is important for IDEs
-            else:
-                dialog.destroy()
-                exception_dialog_active = False
+            dialog.destroy()
+            exception_dialog_active = False
     elif resp == RESPONSE_SEARCH:
-        search_url = (
-            "https://github.com/mypaint/mypaint/search"
-            "?utf8=%E2%9C%93"
-            "&q={}+{}"
-            "&type=Issues"
-        ).format(
-            quote_plus(exctyp.__name__, "/"),
-            quote_plus(str(value), "/")
-        )
+        search_url = f'https://github.com/mypaint/mypaint/search?utf8=%E2%9C%93&q={quote_plus(exctyp.__name__, "/")}+{quote_plus(str(value), "/")}&type=Issues'
         Gtk.show_uri(None, search_url, Gdk.CURRENT_TIME)
         if "-" in lib.meta.MYPAINT_VERSION:
             dialog.set_response_sensitive(RESPONSE_REPORT, True)

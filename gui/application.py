@@ -117,9 +117,9 @@ def _init_icons(icon_path, default_icon='mypaint'):
     icon_tests = [
         (
             default_icon,
-            "check that mypaint icons have been installed "
-            "into {}".format(icon_path),
-        ), (
+            f"check that mypaint icons have been installed into {icon_path}",
+        ),
+        (
             "mypaint-brush-symbolic",
             "check that librsvg is installed, and update loaders.cache",
         ),
@@ -323,9 +323,7 @@ class Application (object):
         self.doc = document.Document(self, app_canvas, model)
         app_canvas.set_model(model)
 
-        signal_callback_objs.append(self.doc)
-        signal_callback_objs.append(self.doc.modes)
-
+        signal_callback_objs.extend((self.doc, self.doc.modes))
         self.scratchpad_filename = ""
         scratchpad_model = lib.document.Document(self.brush,
                                                  painting_only=True)
@@ -353,9 +351,9 @@ class Application (object):
 
         if not self.preferences.get("scratchpad.last_opened_scratchpad", None):
             self.preferences["scratchpad.last_opened_scratchpad"] \
-                = self.filehandler.get_scratchpad_autosave()
+                    = self.filehandler.get_scratchpad_autosave()
         self.scratchpad_filename \
-            = self.preferences["scratchpad.last_opened_scratchpad"]
+                = self.preferences["scratchpad.last_opened_scratchpad"]
 
         self.brush_color_manager = BrushColorManager(self)
         self.brush_color_manager.set_picker_cursor(self.cursor_color_picker)
@@ -873,7 +871,7 @@ class PixbufDirectory (object):
 
     def __getattr__(self, name):
         if name not in self.cache:
-            pixbuf_file = join(self.dirname, name + '.png')
+            pixbuf_file = join(self.dirname, f'{name}.png')
             try:
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file(pixbuf_file)
             except GObject.GError as e:

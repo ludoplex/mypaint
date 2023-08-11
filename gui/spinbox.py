@@ -91,11 +91,7 @@ class ItemSpinBox (Gtk.HBox):
             return False
         if self._model_index is None:
             return False
-        if self._model_index < 0:
-            return False
-        if self._model_index >= len(self._model):
-            return False
-        return True
+        return False if self._model_index < 0 else self._model_index < len(self._model)
 
     def _update_label(self):
         if not self._is_model_valid():

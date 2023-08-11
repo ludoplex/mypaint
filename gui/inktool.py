@@ -184,10 +184,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
         return overlay
 
     def _is_active(self):
-        for mode in self.doc.modes:
-            if mode is self:
-                return True
-        return False
+        return any(mode is self for mode in self.doc.modes)
 
     def _discard_overlays(self):
         for tdw, overlay in self._overlays.items():
@@ -278,14 +275,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
                 self._start_new_capture_phase(rollback=False)
                 assert self.phase == _Phase.CAPTURE
                 # FALLTHRU: *do* start a drag
-        elif self.phase == _Phase.CAPTURE:
-            # XXX Not sure what to do here.
-            # XXX Click to append nodes?
-            # XXX  but how to stop that and enter the adjust phase?
-            # XXX Click to add a 1st & 2nd (=last) node only?
-            # XXX  but needs to allow a drag after the 1st one's placed.
-            pass
-        else:
+        elif self.phase != _Phase.CAPTURE:
             raise NotImplementedError("Unrecognized zone %r", self.zone)
         # Update workaround state for evdev dropouts
         self._button_down = event.button
@@ -659,10 +649,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
                 pressure = lib.helpers.clamp(pressure, 0.0, 1.0)
 
         if pressure is None:
-            pressure = 0.0
-            if event.state & Gdk.ModifierType.BUTTON1_MASK:
-                pressure = 0.5
-
+            pressure = 0.5 if event.state & Gdk.ModifierType.BUTTON1_MASK else 0.0
         # Workaround for buggy evdev behaviour.
         # Events sometimes get a zero raw pressure reading when the
         # pressure reading has not changed. This results in broken
@@ -741,8 +728,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
         n0 = self.nodes[i - 1]
         n1 = self.nodes[i]
         dtime = n1.time - n0.time
-        dtime = max(dtime, self.MIN_INTERNODE_TIME)
-        return dtime
+        return max(dtime, self.MIN_INTERNODE_TIME)
 
     def set_node_dtime(self, i, dtime):
         dtime = max(dtime, self.MIN_INTERNODE_TIME)
@@ -756,9 +742,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
             self.update_node(j, time=new_time)
 
     def can_delete_node(self, i):
-        if i is None:
-            return False
-        return 0 < i < len(self.nodes) - 1
+        return False if i is None else 0 < i < len(self.nodes) - 1
 
     def delete_node(self, i):
         """Delete a node, and issue redraws & updates"""
@@ -789,9 +773,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
             self.target_node_index = None
 
     def can_insert_node(self, i):
-        if i is None:
-            return False
-        return 0 <= i < (len(self.nodes) - 1)
+        return False if i is None else 0 <= i < (len(self.nodes) - 1)
 
     def insert_node(self, i):
         """Insert a node, and issue redraws & updates"""
@@ -854,9 +836,7 @@ class InkingMode (gui.mode.ScrollableModeMixin,
                     else:
                         break
 
-            except ValueError:
-                pass
-            except ZeroDivisionError:
+            except (ValueError, ZeroDivisionError):
                 pass
             finally:
                 i += 1
@@ -937,7 +917,7 @@ class Overlay (gui.overlays.Overlay):
         # points corresponding to the nodes the user manipulates.
         fixed = []
 
-        for i, node in enumerate(nodes):
+        for node in nodes:
             x, y = self._tdw.model_to_display(node.x, node.y)
             fixed.append(_LayoutNode(x, y))
 
@@ -988,21 +968,21 @@ class Overlay (gui.overlays.Overlay):
         k_attract = 0.05
 
         # Let the buttons bounce around until they've settled.
-        for iter_i in xrange(100):
+        for _ in xrange(100):
             accept_button \
-                .add_forces_inverse_square(fixed, k=k_repel) \
-                .add_forces_inverse_square([reject_button], k=k_repel) \
-                .add_forces_linear([fixed[accept_anchor_i]], k=k_attract)
+                    .add_forces_inverse_square(fixed, k=k_repel) \
+                    .add_forces_inverse_square([reject_button], k=k_repel) \
+                    .add_forces_linear([fixed[accept_anchor_i]], k=k_attract)
             reject_button \
-                .add_forces_inverse_square(fixed, k=k_repel) \
-                .add_forces_inverse_square([accept_button], k=k_repel) \
-                .add_forces_linear([fixed[reject_anchor_i]], k=k_attract)
+                    .add_forces_inverse_square(fixed, k=k_repel) \
+                    .add_forces_inverse_square([accept_button], k=k_repel) \
+                    .add_forces_linear([fixed[reject_anchor_i]], k=k_attract)
             reject_button \
-                .update_position() \
-                .constrain_position(*reject_button_bbox)
+                    .update_position() \
+                    .constrain_position(*reject_button_bbox)
             accept_button \
-                .update_position() \
-                .constrain_position(*accept_button_bbox)
+                    .update_position() \
+                    .constrain_position(*accept_button_bbox)
             settled = [(p.speed < 0.5) for p in [accept_button, reject_button]]
             if all(settled):
                 break
@@ -1132,9 +1112,8 @@ class _LayoutNode (object):
             rsquared = (self.x - other.x) ** 2 + (self.y - other.y) ** 2
             if rsquared == 0:
                 continue
-            else:
-                fx += k * (other.x - self.x) / rsquared
-                fy += k * (other.y - self.y) / rsquared
+            fx += k * (other.x - self.x) / rsquared
+            fy += k * (other.y - self.y) / rsquared
         self.force = (fx, fy)
         return self
 
@@ -1231,17 +1210,13 @@ class OptionsUI (gui.mvp.BuiltUIPresenter, object):
 
         """
         mode_ref, node_idx = self._target
-        mode = None
-        if mode_ref is not None:
-            mode = mode_ref()
+        mode = mode_ref() if mode_ref is not None else None
         return (mode, node_idx)
 
     @target.setter
     def target(self, targ):
         inkmode, cn_idx = targ
-        inkmode_ref = None
-        if inkmode:
-            inkmode_ref = weakref.ref(inkmode)
+        inkmode_ref = weakref.ref(inkmode) if inkmode else None
         self._target = (inkmode_ref, cn_idx)
 
         GLib.idle_add(self._update_ui_for_current_target)

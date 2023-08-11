@@ -79,7 +79,7 @@ class MaskableWheelMixin(object):
         """
         self.__mask = []
         self.mask_observers = []
-        action_name = "wheel%s_masked" % (id(self),)
+        action_name = f"wheel{id(self)}_masked"
         self.mask_toggle = Gtk.ToggleAction(
             action_name,
             C_(
@@ -150,16 +150,13 @@ class MaskableWheelMixin(object):
             shape_id = 0
             color_name = pal.get_color_name(i)
             if color_name is not None:
-                mask_id_match = mask_id_re.search(color_name)
-                if mask_id_match:
-                    shape_id = int(mask_id_match.group(1))
+                if mask_id_match := mask_id_re.search(color_name):
+                    shape_id = int(mask_id_match[1])
             if shape_id not in mask_shapes:
                 mask_shapes[shape_id] = []
             mask_shapes[shape_id].append(color)
-        mask_list = []
         shape_ids = sorted(mask_shapes.keys())
-        for shape_id in shape_ids:
-            mask_list.append(mask_shapes[shape_id])
+        mask_list = [mask_shapes[shape_id] for shape_id in shape_ids]
         self.set_mask(mask_list)
 
     def set_mask(self, mask):
@@ -206,8 +203,7 @@ class MaskableWheelMixin(object):
         points = []
         if len(colors) < 3:
             return points
-        for col in colors:
-            points.append(self.get_pos_for_color(col))
+        points.extend(self.get_pos_for_color(col) for col in colors)
         return geom.convex_hull(points)
 
     def get_color_at_position(self, x, y, ignore_mask=False):
@@ -591,26 +587,27 @@ class HCYMaskEditorWheel (HCYHueChromaWheel):
 
     def __button_press_cb(self, widget, event):
         # Begins drags.
-        if self.__drag_func is None:
-            self.__update_active_objects(event.x, event.y)
-            self.__drag_start_pos = event.x, event.y
-            if self.__tmp_new_ctrlpoint is not None:
-                self.__active_ctrlpoint = len(self.__active_shape)
-                self.__active_shape.append(self.__tmp_new_ctrlpoint)
-                self.__tmp_new_ctrlpoint = None
-            if self.__active_ctrlpoint is not None:
-                self.__active_shape_predrag = self.__active_shape[:]
-                ctrlpt = self.__active_shape[self.__active_ctrlpoint]
-                self.__active_ctrlpoint_predrag = ctrlpt
-                self.__drag_func = self.__drag_active_ctrlpoint
-                self.__set_cursor(self.__move_point_cursor)
-            elif self.__active_shape is not None:
-                self.__active_shape_predrag = self.__active_shape[:]
-                self.__drag_func = self.__drag_active_shape
-                self.__set_cursor(self.__move_cursor)
-            elif self.__last_cursor is self.__rotate_cursor:
-                self.__mask_predrag = None
-                self.__drag_func = self.__rotate_mask
+        if self.__drag_func is not None:
+            return
+        self.__update_active_objects(event.x, event.y)
+        self.__drag_start_pos = event.x, event.y
+        if self.__tmp_new_ctrlpoint is not None:
+            self.__active_ctrlpoint = len(self.__active_shape)
+            self.__active_shape.append(self.__tmp_new_ctrlpoint)
+            self.__tmp_new_ctrlpoint = None
+        if self.__active_ctrlpoint is not None:
+            ctrlpt = self.__active_shape[self.__active_ctrlpoint]
+            self.__active_ctrlpoint_predrag = ctrlpt
+            self.__drag_func = self.__drag_active_ctrlpoint
+            self.__active_shape_predrag = self.__active_shape[:]
+            self.__set_cursor(self.__move_point_cursor)
+        elif self.__active_shape is not None:
+            self.__active_shape_predrag = self.__active_shape[:]
+            self.__drag_func = self.__drag_active_shape
+            self.__set_cursor(self.__move_cursor)
+        elif self.__last_cursor is self.__rotate_cursor:
+            self.__mask_predrag = None
+            self.__drag_func = self.__rotate_mask
 
     def __button_release_cb(self, widget, event):
         # Ends the current drag & cleans up, or handle other clicks.

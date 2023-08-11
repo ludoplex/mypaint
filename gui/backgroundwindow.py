@@ -123,8 +123,7 @@ class BackgroundWindow (windowing.Dialog):
         rgb = self.cs.get_current_color()
         rgb = (rgb.red, rgb.green, rgb.blue)
         rgb = (c / 0xffff for c in rgb)
-        pixbuf = new_blank_pixbuf(rgb, N, N)
-        return pixbuf
+        return new_blank_pixbuf(rgb, N, N)
 
     def _save_as_default_cb(self):
         pixbuf = self._current_background_pixbuf
@@ -316,10 +315,7 @@ def _filename_to_display(s):
     """Convert a str filename to Unicode without obsessing too much."""
     # That said, try to be be correct about Windows/POSIX weirdness.
     if not isinstance(s, unicode):
-        if sys.platform == "win32":
-            enc = "UTF-8"  # always, and sys.getfilesystemencoding() breaks
-        else:
-            enc = sys.getfilesystemencoding()
+        enc = "UTF-8" if sys.platform == "win32" else sys.getfilesystemencoding()
         s = s.decode(enc, "replace")
     return s
 

@@ -31,16 +31,16 @@ logger = logging.getLogger(__name__)
 
 # Module constants:
 
-STRING_VALUE_SETTINGS = set((
+STRING_VALUE_SETTINGS = {
     "parent_brush_name",
-    "group",  # Possibly obsolete group field (replaced by order.conf?)
-    "comment",  # MyPaint uses this to explanation what the file is
-    "notes",  # Brush developer's notes field, multiline
-    "description",  # Short, user-facing description field, single line
-))
+    "group",
+    "comment",
+    "notes",
+    "description",
+}
 OLDFORMAT_BRUSHFILE_VERSION = 2
 
-BRUSH_SETTINGS = set([s.cname for s in brushsettings.settings])
+BRUSH_SETTINGS = {s.cname for s in brushsettings.settings}
 ALL_SETTINGS = BRUSH_SETTINGS.union(STRING_VALUE_SETTINGS)
 
 _BRUSHINFO_MATCH_IGNORES = [
@@ -143,7 +143,7 @@ def _oldfmt_parse_value(rawvalue, cname, version):
             points = _oldfmt_parse_points_v2(rawpoints)
         assert len(points) >= 2
         input_points[inputname] = points
-    return [(cname, [float(basevalue), input_points])]
+    return [(cname, [basevalue, input_points])]
 
 
 def _oldfmt_parse_points_v1(rawpoints):
@@ -166,7 +166,7 @@ def _oldfmt_parse_points_v2(rawpoints):
     for s in rawpoints.split(', '):
         s = s.strip()
         if not (s.startswith('(') and s.endswith(')') and ' ' in s):
-            return '(x y) expected, got "%s"' % s
+            return f'(x y) expected, got "{s}"'
         s = s[1:-1]
         x, y = [float(ss) for ss in s.split(' ')]
         points.append((x, y))
@@ -243,7 +243,7 @@ class BrushInfo (object):
             input_points = {}
         self.settings[cname] = [basevalue, input_points]
         for f in self.observers:
-            f(set([cname]))
+            f({cname})
 
     def to_json(self):
         settings = dict(self.settings)
@@ -391,10 +391,7 @@ class BrushInfo (object):
                     version = int(rawvalue)
                     if version > OLDFORMAT_BRUSHFILE_VERSION:
                         raise BrushInfo.ParseError(
-                            "This brush is not in the old format "
-                            "supported (version > {})".format(
-                                OLDFORMAT_BRUSHFILE_VERSION,
-                            )
+                            f"This brush is not in the old format supported (version > {OLDFORMAT_BRUSHFILE_VERSION})"
                         )
                 else:
                     rawsettings.append((cname, rawvalue))
@@ -422,7 +419,7 @@ class BrushInfo (object):
                             value = _oldfmt_transform_y(value, func)
                     self.settings[cname] = value
             except Exception as e:
-                line = "%s %s" % (rawcname, rawvalue)
+                line = f"{rawcname} {rawvalue}"
                 errors.append((line, str(e)))
         if errors:
             for error in errors:
@@ -459,50 +456,44 @@ class BrushInfo (object):
         if self.settings[cname][0] != value:
             self.settings[cname][0] = value
             for f in self.observers:
-                f(set([cname]))
+                f({cname})
 
     def set_points(self, cname, input, points):
         assert cname in BRUSH_SETTINGS
-        points = tuple(points)
         d = self.settings[cname][1]
-        if points:
+        if points := tuple(points):
             d[input] = copy.deepcopy(points)
         elif input in d:
             d.pop(input)
 
         for f in self.observers:
-            f(set([cname]))
+            f({cname})
 
     def set_setting(self, cname, value):
         self.settings[cname] = copy.deepcopy(value)
         for f in self.observers:
-            f(set([cname]))
+            f({cname})
 
     def get_setting(self, cname):
         return copy.deepcopy(self.settings[cname])
 
     def get_string_property(self, name):
         value = self.settings.get(name, None)
-        if value is None:
-            return None
-        return unicode(value)
+        return None if value is None else unicode(value)
 
     def set_string_property(self, name, value):
         assert name in STRING_VALUE_SETTINGS
         if value is None:
             self.settings.pop(name, None)
         else:
-            assert isinstance(value, str) or isinstance(value, unicode)
+            assert isinstance(value, (str, unicode))
             self.settings[name] = unicode(value)
         for f in self.observers:
-            f(set([name]))
+            f({name})
 
     def has_only_base_value(self, cname):
         """Return whether a setting is constant for this brush."""
-        for i in brushsettings.inputs:
-            if self.has_input(cname, i.name):
-                return False
-        return True
+        return not any(self.has_input(cname, i.name) for i in brushsettings.inputs)
 
     def has_large_base_value(self, cname, threshold=0.9):
         return self.get_base_value(cname) > threshold
@@ -525,8 +516,7 @@ class BrushInfo (object):
 
     def end_atomic(self):
         self.observers[:] = self.observers_hidden.pop()
-        pending = self.pending_updates.copy()
-        if pending:
+        if pending := self.pending_updates.copy():
             self.pending_updates.clear()
             for f in self.observers:
                 f(pending)

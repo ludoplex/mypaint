@@ -48,15 +48,15 @@ class HSVSquarePage (CombinedAdjusterPage, IconRenderable):
         self.__adj._update_tooltips()
 
     @classmethod
-    def get_page_icon_name(self):
+    def get_page_icon_name(cls):
         return 'mypaint-tool-hsvsquare'
 
     @classmethod
-    def get_page_title(self):
+    def get_page_title(cls):
         return _('HSV Square')
 
     @classmethod
-    def get_page_description(self):
+    def get_page_description(cls):
         return _("An HSV Square which can be rotated to show different hues.")
 
     def get_page_widget(self):
@@ -84,7 +84,6 @@ class HSVSquarePage (CombinedAdjusterPage, IconRenderable):
             ring_adj.render_background_cb(cr, wd=16, ht=16)
             cr.translate(-6, -6)
             square_adj.render_background_cb(cr, wd=12, ht=12)
-            cr.restore()
         else:
             cr.save()
             square_offset = int(size/5.0 * 1.6)
@@ -96,7 +95,7 @@ class HSVSquarePage (CombinedAdjusterPage, IconRenderable):
                 square_dim += 1
             cr.translate(-square_offset, -square_offset)
             square_adj.render_background_cb(cr, wd=square_dim, ht=square_dim)
-            cr.restore()
+        cr.restore()
         ring_adj.set_color_manager(None)
         square_adj.set_color_manager(None)
 
@@ -146,8 +145,7 @@ class _HSVSquareOuterRing (HueSaturationWheelAdjuster):
 
     def get_pos_for_color(self, col):
         nr, ntheta = self.get_normalized_polar_pos_for_color(col)
-        mgr = self.get_color_manager()
-        if mgr:
+        if mgr := self.get_color_manager():
             ntheta = mgr.distort_hue(ntheta)
         nr **= 1.0/self.SAT_GAMMA
         alloc = self.get_allocation()
@@ -168,8 +166,7 @@ class _HSVSquareOuterRing (HueSaturationWheelAdjuster):
         # Normalized radius
         r = math.sqrt((x-cx)**2 + (y-cy)**2)
         radius = self.get_radius(alloc=alloc)
-        if r > radius:
-            r = radius
+        r = min(r, radius)
         r /= radius
         r **= self.SAT_GAMMA
         # Normalized polar angle
@@ -177,8 +174,7 @@ class _HSVSquareOuterRing (HueSaturationWheelAdjuster):
         while theta <= 0:
             theta += 1.0
         theta %= 1.0
-        mgr = self.get_color_manager()
-        if mgr:
+        if mgr := self.get_color_manager():
             theta = mgr.undistort_hue(theta)
         return self.color_at_normalized_polar_pos(r, theta)
 
@@ -342,7 +338,7 @@ class _HSVSquareInnerSquare (IconRenderableColorAdjusterWidget):
         step = max(1, int(eff_wd // 128))
 
         rect_x, rect_y = int(b)+0.5, int(b)+0.5
-        rect_w, rect_h = int(eff_wd)-1, int(eff_ht)-1
+        rect_w, rect_h = eff_wd - 1, eff_ht - 1
 
         # Paint the central area offscreen
         cr.push_group()

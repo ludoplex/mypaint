@@ -145,7 +145,6 @@ class State (object):
 
         """
         if self.active:
-            # pressing the key again
             if self.next_state:
                 self.leave()
                 self.next_state.activate(action_or_event)
@@ -163,8 +162,10 @@ class State (object):
                 e = action_or_event
                 # eat any multiple clicks. TODO should possibly try to e.g.
                 # split a triple click into three clicks in the future.
-                if (e.type == Gdk.EventType.DOUBLE_BUTTON_PRESS or
-                        e.type == Gdk.EventType.TRIPLE_BUTTON_PRESS):
+                if e.type in [
+                    Gdk.EventType.DOUBLE_BUTTON_PRESS,
+                    Gdk.EventType.TRIPLE_BUTTON_PRESS,
+                ]:
                     e.type = Gdk.EventType.BUTTON_PRESS
 
                 # currently we only support mouse buttons being single-pressed.
@@ -191,17 +192,14 @@ class State (object):
         if want_active:
             if not self.active:
                 self.activate(action)
-        else:
-            if self.active:
-                self.leave()
+        elif self.active:
+            self.leave()
 
     def _keyup_cb(self, widget, event):
         if not self.active:
             return
         self.keydown = False
-        if event.time/1000.0 - self._enter_time < self.max_key_hit_duration:
-            pass  # accept as one-time hit
-        else:
+        if event.time / 1000.0 - self._enter_time >= self.max_key_hit_duration:
             if self._outside_popup_timeout_id:
                 self.leave('outside')
             else:

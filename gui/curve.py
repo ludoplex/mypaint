@@ -35,10 +35,7 @@ class CurveWidget(Gtk.DrawingArea):
         self._npoints = None
         self.npoints = npoints
         self.grabbed = None
-        if changed_cb is None:
-            self.changed_cb = lambda *a: None
-        else:
-            self.changed_cb = changed_cb
+        self.changed_cb = (lambda *a: None) if changed_cb is None else changed_cb
         self.magnetic = magnetic
 
         self.connect("draw", self.draw_cb)
@@ -101,14 +98,14 @@ class CurveWidget(Gtk.DrawingArea):
         return width, height
 
     def set_point(self, index, value):
-        y = value[1]
         self.points[index] = value
         if index in self.ylock:
+            y = value[1]
             for lockedto in self.ylock[index]:
                 self.points[lockedto] = (self.points[lockedto][0], y)
 
     def button_press_cb(self, widget, event):
-        if not event.button == 1:
+        if event.button != 1:
             return
         x, y = self.eventpoint(event.x, event.y)
         nearest = None
@@ -124,10 +121,8 @@ class CurveWidget(Gtk.DrawingArea):
                 if self.points[i][0] < x:
                     insertpos = i + 1
             if insertpos > 0 and insertpos < len(self.points):
-                if y > 1.0:
-                    y = 1.0
-                if y < 0.0:
-                    y = 0.0
+                y = min(y, 1.0)
+                y = max(y, 0.0)
                 self.points.insert(insertpos, (x, y))
                 # XXX and update ylockgroups?
                 #
@@ -144,7 +139,7 @@ class CurveWidget(Gtk.DrawingArea):
         self.grabbed = nearest
 
     def button_release_cb(self, widget, event):
-        if not event.button == 1:
+        if event.button != 1:
             return
         if self.grabbed:
             i = self.grabbed
@@ -187,20 +182,16 @@ class CurveWidget(Gtk.DrawingArea):
         if out:
             self.points[i] = None
         else:
-            if y > 1.0:
-                y = 1.0
-            if y < 0.0:
-                y = 0.0
+            y = min(y, 1.0)
+            y = max(y, 0.0)
             if self.magnetic:
                 xdiff = [abs(x - v) for v in self._SNAP_TO]
                 ydiff = [abs(y - v) for v in self._SNAP_TO]
                 if min(xdiff) < 0.015 and min(ydiff) < 0.015:
                     y = self._SNAP_TO[ydiff.index(min(ydiff))]
                     x = self._SNAP_TO[xdiff.index(min(xdiff))]
-            if x < leftbound:
-                x = leftbound
-            if x > rightbound:
-                x = rightbound
+            x = max(x, leftbound)
+            x = min(x, rightbound)
             self.set_point(i, (x, y))
         self.queue_draw()
 

@@ -249,7 +249,7 @@ class DrawWindow (Gtk.Window):
         xml = ET.tostring(ui_elt)
         xml = xml.decode("utf-8")
         self.app.ui_manager.add_ui_from_string(xml)
-        tmp_menubar = self.app.ui_manager.get_widget('/' + name)
+        tmp_menubar = self.app.ui_manager.get_widget(f'/{name}')
         popupmenu = Gtk.Menu()
         for item in tmp_menubar.get_children():
             tmp_menubar.remove(item)
@@ -283,17 +283,16 @@ class DrawWindow (Gtk.Window):
             uri = rawdata.split("\r\n")[0]
             file_path, _h = lib.glib.filename_from_uri(uri)
             if os.path.exists(file_path):
-                ok_to_open = self.app.filehandler.confirm_destructive_action(
-                    title = C_(
+                if ok_to_open := self.app.filehandler.confirm_destructive_action(
+                    title=C_(
                         u'Open dragged file confirm dialog: title',
                         u"Open Dragged File?",
                     ),
-                    confirm = C_(
+                    confirm=C_(
                         u'Open dragged file confirm dialog: continue button',
                         u"_Open",
                     ),
-                )
-                if ok_to_open:
+                ):
                     self.app.filehandler.open_file(file_path)
         elif info == 2:  # color
             color = uicolor.from_drag_data(rawdata)
@@ -322,7 +321,7 @@ class DrawWindow (Gtk.Window):
         type_name = action_name.replace("Reveal", "", 1)
         if not (type_name.endswith("Tool") or type_name.endswith("Panel")):
             raise ValueError("Action's name must end with 'Panel' or 'Tool'")
-        gtype_name = "MyPaint" + type_name
+        gtype_name = f"MyPaint{type_name}"
         workspace = self.app.workspace
         workspace.reveal_tool_widget(gtype_name, [])
 
@@ -336,7 +335,7 @@ class DrawWindow (Gtk.Window):
                 break
         if not (type_name.endswith("Tool") or type_name.endswith("Panel")):
             raise ValueError("Action's name must end with 'Panel' or 'Tool'")
-        gtype_name = "MyPaint" + type_name
+        gtype_name = f"MyPaint{type_name}"
         workspace = self.app.workspace
         added = workspace.get_tool_widget_added(gtype_name, [])
         active = action.get_active()
@@ -366,8 +365,7 @@ class DrawWindow (Gtk.Window):
                     window.show_all()
                 window.present()
             elif visible:
-                if not active:
-                    window.hide()
+                window.hide()
         else:
             logger.warning("unknown window or tool %r" % (action_name,))
 
@@ -616,7 +614,7 @@ class DrawWindow (Gtk.Window):
         filename = self.app.scratchpad_filename
         if os.path.isfile(filename):
             self.app.filehandler.open_scratchpad(filename)
-            logger.info("Reverted scratchpad to %s" % (filename,))
+            logger.info(f"Reverted scratchpad to {filename}")
         else:
             logger.warning("No file to revert to yet.")
 
@@ -639,8 +637,7 @@ class DrawWindow (Gtk.Window):
 
     def palette_next_cb(self, action):
         mgr = self.app.brush_color_manager
-        newcolor = mgr.palette.move_match_position(1, mgr.get_color())
-        if newcolor:
+        if newcolor := mgr.palette.move_match_position(1, mgr.get_color()):
             mgr.set_color(newcolor)
         # Show the palette panel if hidden
         workspace = self.app.workspace
@@ -648,8 +645,7 @@ class DrawWindow (Gtk.Window):
 
     def palette_prev_cb(self, action):
         mgr = self.app.brush_color_manager
-        newcolor = mgr.palette.move_match_position(-1, mgr.get_color())
-        if newcolor:
+        if newcolor := mgr.palette.move_match_position(-1, mgr.get_color()):
             mgr.set_color(newcolor)
         # Show the palette panel if hidden
         workspace = self.app.workspace
@@ -713,20 +709,17 @@ class DrawWindow (Gtk.Window):
         gui.meta.run_about_dialog(self, self.app)
 
     def show_online_help_cb(self, action):
-        # The online help texts are migrating to the wiki for v1.2.x.
-        wiki_base = "https://github.com/mypaint/mypaint/wiki/"
         action_name = action.get_name()
-        # TODO: these page names should be localized.
-        help_page = {
-            "OnlineHelpIndex": "v1.2-User-Manual",
-            "OnlineHelpBrushShortcutKeys": "v1.2-Brush-Shortcut-Keys",
-        }.get(action_name)
-        if help_page:
-            help_uri = wiki_base + help_page
-            logger.info('Opening URI %r in web browser', help_uri)
-            webbrowser.open(help_uri)
-        else:
+        if not (
+            help_page := {
+                "OnlineHelpIndex": "v1.2-User-Manual",
+                "OnlineHelpBrushShortcutKeys": "v1.2-Brush-Shortcut-Keys",
+            }.get(action_name)
+        ):
             raise RuntimeError("Unknown online help %r" % action_name)
+        help_uri = f"https://github.com/mypaint/mypaint/wiki/{help_page}"
+        logger.info('Opening URI %r in web browser', help_uri)
+        webbrowser.open(help_uri)
 
     ## Footer bar stuff
 
@@ -786,10 +779,7 @@ class DrawWindow (Gtk.Window):
             icon_name = "missing-image"
         icon_size = Gtk.IconSize.DIALOG
         tooltip.set_icon_from_icon_name(icon_name, icon_size)
-        description = None
-        action = mode.get_action()
-        if action:
-            description = action.get_tooltip()
+        description = action.get_tooltip() if (action := mode.get_action()) else None
         if not description:
             description = mode.get_usage()
         params = {

@@ -125,7 +125,7 @@ class PreferencesWindow (windowing.Dialog):
         for size_name in ["small", "large"]:
             if size_name != size:
                 continue
-            radio_name = "toolbar_icon_size_%s_radio" % (size,)
+            radio_name = f"toolbar_icon_size_{size}_radio"
             radio = getobj(radio_name)
             radio.set_active(True)
             logger.debug("Set %r active", radio_name)
@@ -159,10 +159,9 @@ class PreferencesWindow (windowing.Dialog):
         # Only affects loading and saving PNGs and ORAs currently,
         # so it's located on the Load & Save tab for now.
         disp_colorspace_setting = p["display.colorspace"]
-        disp_colorspace_radiobtn = getobj(
-            "display_colorspace_%s_radiobutton" % (disp_colorspace_setting,)
-        )
-        if disp_colorspace_radiobtn:
+        if disp_colorspace_radiobtn := getobj(
+            f"display_colorspace_{disp_colorspace_setting}_radiobutton"
+        ):
             disp_colorspace_radiobtn.set_active(True)
 
         # Button mapping
@@ -180,10 +179,8 @@ class PreferencesWindow (windowing.Dialog):
         # Color wheel type
         cm = self.app.brush_color_manager
 
-        wheel_radiobutton_name = "color_wheel_%s_radiobutton" \
-            % (cm.get_wheel_type(),)
-        wheel_radiobutton = getobj(wheel_radiobutton_name)
-        if wheel_radiobutton:
+        wheel_radiobutton_name = f"color_wheel_{cm.get_wheel_type()}_radiobutton"
+        if wheel_radiobutton := getobj(wheel_radiobutton_name):
             wheel_radiobutton.set_active(True)
 
         # Autosave
